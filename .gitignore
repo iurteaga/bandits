@@ -1,0 +1,6 @@
+# Jupyter created files/folders
+.ipynb_checkpoints
+__pycache__
+
+# Results folder
+results

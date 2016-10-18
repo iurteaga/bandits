@@ -56,16 +56,17 @@ def execute_bandits(K, bandits, R, t_max, plot_colors=False):
     # Return averages
     return (returns, actions, predictive)
 
-# Bandit plotting function  
-def plot_bandits(returns_expected, bandit_returns, bandit_actions, bandit_predictive, colors, labels, t_plot=None, plot_std=True):
-    """ Plot results for a set of bandits
+################################
+# Bandit plotting functions
+################################
+
+# Bandit plotting function: returns 
+def bandits_plot_returns(returns_expected, bandit_returns, colors, labels, t_plot=None, plot_std=True, plot_save=None):
+    """ Plot returns for a set of bandits
         
         Args:
-            R: number of realizations executed
             returns_expected: true expected returns
             bandit_returns: bandits' returns
-            bandit_actions: bandits' actions
-            bandit_predictive: bandits' action predictive density
         Rets:
     """
     # Dimensionalities
@@ -85,8 +86,11 @@ def plot_bandits(returns_expected, bandit_returns, bandit_actions, bandit_predic
     plt.ylabel(r'$y_t$')
     plt.title('Returns over time')
     plt.xlim([0, t_plot-1])
-    legend = plt.legend(bbox_to_anchor=(0,-0.25), ncol=n_bandits, loc='center', shadow=True)
-    plt.show()
+    legend = plt.legend(bbox_to_anchor=(1.05,1.05), loc='upper left', ncol=1, shadow=True)
+    if plot_save is None: 
+        plt.show()
+    else:
+        plt.savefig(plot_save+'/returns.eps', format='eps', bbox_inches='tight')
 
     # Cumulative returns over time
     plt.figure()
@@ -99,9 +103,24 @@ def plot_bandits(returns_expected, bandit_returns, bandit_actions, bandit_predic
     plt.ylabel(r'$\sum_{t=0}^Ty_t$')
     plt.title('Cumulative returns over time')
     plt.xlim([0, t_plot-1])
-    legend = plt.legend(bbox_to_anchor=(0,-0.25), ncol=n_bandits, loc='center', shadow=True)
-    plt.show()
+    legend = plt.legend(bbox_to_anchor=(1.05,1.05), loc='upper left', ncol=1, shadow=True)
+    if plot_save is None: 
+        plt.show()
+    else:
+        plt.savefig(plot_save+'/returns_cumulative.eps', format='eps', bbox_inches='tight')
 
+# Bandit plotting function: regrets 
+def bandits_plot_regret(returns_expected, bandit_returns, colors, labels, t_plot=None, plot_std=True, plot_save=None):
+    """ Plot regrets for a set of bandits
+        
+        Args:
+            returns_expected: true expected returns
+            bandit_returns: bandits' returns
+        Rets:
+    """
+    # Dimensionalities
+    n_bandits, R, K, t_max = bandit_returns.shape
+    
     # Regret over time
     plt.figure()
     for n in np.arange(n_bandits):
@@ -112,8 +131,11 @@ def plot_bandits(returns_expected, bandit_returns, bandit_actions, bandit_predic
     plt.ylabel(r'$l_t=y_t^*-y_t$')
     plt.title('Regret over time')
     plt.xlim([0, t_plot-1])
-    legend = plt.legend(bbox_to_anchor=(0,-0.25), ncol=n_bandits, loc='center', shadow=True)
-    plt.show()
+    legend = plt.legend(bbox_to_anchor=(1.05,1.05), loc='upper left', ncol=1, shadow=True)
+    if plot_save is None: 
+        plt.show()
+    else:
+        plt.savefig(plot_save+'/regret.eps', format='eps', bbox_inches='tight')
 
     # Cumulative regret over time
     plt.figure()
@@ -125,24 +147,54 @@ def plot_bandits(returns_expected, bandit_returns, bandit_actions, bandit_predic
     plt.ylabel(r'$L_t=\sum_{t=0}^T y_t^*-y_t$')
     plt.title('Cumulative regret over time')
     plt.xlim([0, t_plot-1])
-    legend = plt.legend(bbox_to_anchor=(0,-0.25), ncol=n_bandits, loc='center', shadow=True)
-    plt.show()  
+    legend = plt.legend(bbox_to_anchor=(1.05,1.05), loc='upper left', ncol=1, shadow=True)
+    if plot_save is None: 
+        plt.show()
+    else:
+        plt.savefig(plot_save+'/regret_cumulative.eps', format='eps', bbox_inches='tight')
 
-    # Action predictive density probabilities over time: separate plots
+
+# Bandit plotting function: action predictive density
+def bandits_plot_action_density(bandit_predictive, colors, labels, t_plot=None, plot_std=True, plot_save=None):
+    """ Plot the computed predictive action density for a set of bandits
+        
+        Args:
+            bandit_predictive: bandits' action predictive density
+        Rets:
+    """
+    # Dimensionalities
+    n_bandits, R, K, t_max = bandit_predictive.shape
+    
+    # Action predictive density probabilities over time
     for k in np.arange(0,K):
         plt.figure()
         for n in np.arange(n_bandits):
-            plt.plot(np.arange(t_plot), bandit_predictive[n,:,k,0:t_plot].mean(axis=0), colors[n], label=labels[n]+' predictive density')
+            plt.plot(np.arange(t_plot), bandit_predictive[n,:,k,0:t_plot].mean(axis=0), colors[n], label=labels[n])
             if plot_std:
                 plt.fill_between(np.arange(t_plot), bandit_predictive[n,:,k,0:t_plot].mean(axis=0)-bandit_predictive[n,:,k,0:t_plot].std(axis=0), bandit_predictive[n,:,k,0:t_plot].mean(axis=0)+bandit_predictive[n,:,k,0:t_plot].std(axis=0),alpha=0.5, facecolor=colors[n])
         plt.ylabel(r'$f(a_{t+1}=a|a_{1:t}, y_{1:t})$')
         plt.xlabel('t')
         plt.title('Averaged Action Predictive density probabilities for arm {}'.format(k))
         plt.xlim([0, t_plot-1])
-        legend = plt.legend(bbox_to_anchor=(0,-0.25), ncol=n_bandits, loc='center', shadow=True)
-        plt.show()
-    
-    # Action probabilities over time: separate plots
+        legend = plt.legend(bbox_to_anchor=(1.05,1.05), loc='upper left', ncol=1, shadow=True)
+        if plot_save is None: 
+            plt.show()
+        else:
+            plt.savefig(plot_save+'/action_density_{}.eps'.format(k), format='eps', bbox_inches='tight')
+
+
+# Bandit plotting function: actions
+def bandits_plot_actions(bandit_actions, colors, labels, t_plot=None, plot_std=True, plot_save=None):
+    """ Plot the actions selected for a set of bandits
+        
+        Args:
+            bandit_actions: bandits' actions
+        Rets:
+    """
+    # Dimensionalities
+    n_bandits, R, K, t_max = bandit_actions.shape
+       
+    # Action probabilities over time
     for k in np.arange(0,K):
         plt.figure()
         for n in np.arange(n_bandits):
@@ -153,57 +205,69 @@ def plot_bandits(returns_expected, bandit_returns, bandit_actions, bandit_predic
         plt.xlabel('t')
         plt.title('Averaged Action probabilities for arm {}'.format(k))
         plt.xlim([0, t_plot-1])
-        legend = plt.legend(bbox_to_anchor=(0,-0.25), ncol=n_bandits, loc='center', shadow=True)
-        plt.show()
+        legend = plt.legend(bbox_to_anchor=(1.05,1.05), loc='upper left', ncol=1, shadow=True)
+        if plot_save is None: 
+            plt.show()
+        else:
+            plt.savefig(plot_save+'/actions_{}.eps'.format(k), format='eps', bbox_inches='tight')
 
-    # Action probabilities (combined) over time: Subplots
+# Bandit plotting function: correct actions
+def bandits_plot_actions_correct(returns_expected,bandit_actions, colors, labels, t_plot=None, plot_std=True, plot_save=None):
+    """ Plot the probability of selecting correct actions for a set of bandits
+        
+        Args:
+            returns_expected: true expected returns        
+            bandit_actions: bandits' actions
+        Rets:
     """
-    f, *axes = plt.subplots(K, sharex=True, sharey=True)
-    for k in np.arange(0,K):
-        for n in np.arange(n_bandits):
-            axes[0][k].plot(np.arange(t_plot), bandit_predictive[n,:,k,0:t_plot].mean(axis=0), colors[n], label=labels[n]+' predictive density')
-            axes[0][k].plot(np.arange(t_plot), bandit_actions[n,:,k,0:t_plot].mean(axis=0), colors[n]+'-.', label=labels[n]+' actions')
-            if plot_std:
-                axes[0][k].fill_between(np.arange(t_plot), bandit_predictive[n,:,k,0:t_plot].mean(axis=0)-bandit_predictive[n,:,k,0:t_plot].std(axis=0), bandit_predictive[n,:,k,0:t_plot].mean(axis=0)+bandit_predictive[n,:,k,0:t_plot].std(axis=0),alpha=0.5, facecolor=colors[n])
-                axes[0][k].fill_between(np.arange(t_plot), bandit_actions[n,:,k,0:t_plot].mean(axis=0)-bandit_actions[n,:,k,0:t_plot].std(axis=0), bandit_actions[n,:,k,0:t_plot].mean(axis=0)+bandit_actions[n,:,k,0:t_plot].std(axis=0),alpha=0.5, facecolor=colors[n])
-    plt.ylabel(r'$f(a_{t+1}=a|a_{1:t}, y_{1:t})$')
-    plt.xlabel('t')
-    plt.title('Averaged Predictive probabilities')
-    plt.axis([0, t_plot-1,0,1])
-    legend = plt.legend(loc='upper right', shadow=True)
-    plt.show()
     
-    # Action probabilities (combined) over time: separate plots
-    for k in np.arange(0,K):
-        plt.figure()
-        for n in np.arange(n_bandits):
-            plt.plot(np.arange(t_plot), bandit_predictive[n,:,k,0:t_plot].mean(axis=0), colors[n], label=labels[n]+' predictive density')
-            plt.plot(np.arange(t_plot), bandit_actions[n,:,k,0:t_plot].mean(axis=0), colors[n]+'-.', label=labels[n]+' actions')
-            if plot_std:
-                plt.fill_between(np.arange(t_plot), bandit_predictive[n,:,k,0:t_plot].mean(axis=0)-bandit_predictive[n,:,k,0:t_plot].std(axis=0), bandit_predictive[n,:,k,0:t_plot].mean(axis=0)+bandit_predictive[n,:,k,0:t_plot].std(axis=0),alpha=0.5, facecolor=colors[n])
-                plt.fill_between(np.arange(t_plot), bandit_actions[n,:,k,0:t_plot].mean(axis=0)-bandit_actions[n,:,k,0:t_plot].std(axis=0), bandit_actions[n,:,k,0:t_plot].mean(axis=0)+bandit_actions[n,:,k,0:t_plot].std(axis=0),alpha=0.5, facecolor=colors[n])
-        plt.ylabel(r'$f(a_{t+1}=a|a_{1:t}, y_{1:t})$')
-        plt.xlabel('t')
-        plt.title('Averaged Predictive probability for arm {}'.format(k))
-        plt.axis([0, t_plot-1,0,1])
-        legend = plt.legend(bbox_to_anchor=(0,-0.25), ncol=n_bandits, loc='center', shadow=True)
-        plt.show()
-    """
-    	
+    # Dimensionalities
+    n_bandits, R, K, t_max = bandit_actions.shape
+    
 	# Correct arm selection probability
     plt.figure()
     for n in np.arange(n_bandits):
-        plt.plot(np.arange(t_plot), bandit_actions[n,:,returns_expected.argmax(),0:t_plot].mean(axis=0), colors[n], label=labels[n]+' actions')
+        plt.plot(np.arange(t_plot), bandit_actions[n,:,returns_expected.argmax(),0:t_plot].mean(axis=0), colors[n], label=labels[n])
         if plot_std:
             plt.fill_between(np.arange(t_plot), bandit_actions[n,:,returns_expected.argmax(),0:t_plot].mean(axis=0)-bandit_actions[n,:,returns_expected.argmax(),0:t_plot].std(axis=0), bandit_actions[n,:,returns_expected.argmax(),0:t_plot].mean(axis=0)+bandit_actions[n,:,returns_expected.argmax(),0:t_plot].std(axis=0),alpha=0.5, facecolor=colors[n])
     plt.ylabel(r'$f(a_{t+1}=a^*|a_{1:t}, y_{1:t})$')
     plt.xlabel('t')
     plt.title('Averaged Correct Action probabilities')
-    plt.xlim([0, t_plot-1])
-    legend = plt.legend(bbox_to_anchor=(0,-0.25), ncol=n_bandits, loc='center', shadow=True)
-    plt.show()
-	
-	
+    plt.axis([0, t_plot-1, 0, 1])
+    legend = plt.legend(bbox_to_anchor=(1.05,1.05), loc='upper left', ncol=1, shadow=True)
+    if plot_save is None: 
+        plt.show()
+    else:
+        plt.savefig(plot_save+'/correct_actions.eps', format='eps', bbox_inches='tight')
+
+
+# Bandit plotting function: all
+def bandits_plot_all(returns_expected, bandit_returns, bandit_actions, bandit_predictive, colors, labels, t_plot=None, plot_std=True, plot_save=None):
+    """ Plot all results for a set of bandits
+        
+        Args:
+            returns_expected: true expected returns
+            bandit_returns: bandits' returns
+            bandit_actions: bandits' actions
+            bandit_predictive: bandits' action predictive density
+        Rets:
+    """
+        
+    # Returns over time
+    bandits_plot_returns(returns_expected, bandit_returns, colors, labels, t_plot, plot_std, plot_save)
+
+    # Regret over time
+    bandits_plot_regret(returns_expected, bandit_returns, colors, labels, t_plot, plot_std, plot_save)
+
+    # Action predictive density probabilities over time
+    bandits_plot_action_density(bandit_predictive, colors, labels, t_plot, plot_std, plot_save)
+   
+    # Actions over time
+    bandits_plot_actions(bandit_actions, colors, labels, t_plot, plot_std, plot_save)
+
+    # Correct actions over time
+    bandits_plot_actions_correct(returns_expected, bandit_actions, colors, labels, t_plot, plot_std, plot_save)
+    	
 # Making sure the main program is not executed when the module is imported
 if __name__ == '__main__':
     main()
