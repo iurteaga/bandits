@@ -9,7 +9,7 @@ from itertools import *
 
 # Add path and import Bayesian Bandits
 sys.path.append('../src')
-from BayesianBandits import *
+from BayesianBanditsTrue import *
 from Bandit_functions import *
 
 # Main code
@@ -46,7 +46,7 @@ def main(K, t_max, R, theta_diff, theta_factor):
             # Monte Carlo Bayesian Bandits
             M_samples=np.array([1, 100])
             for n in np.arange(M_samples.size):
-                bandits.append(BayesianBanditMonteCarlo(K, reward_function, reward_prior, M_samples[n]))
+                bandits.append(BayesianBanditTrueMonteCarlo(K, reward_function, reward_prior, M_samples[n]))
                 bandits_labels.append('Monte Carlo M={}'.format(M_samples[n]))
                 
             # Bandits colors

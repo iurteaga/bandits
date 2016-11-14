@@ -6,34 +6,39 @@ import scipy.stats as stats
 from collections import defaultdict
 import abc
 import sys
-
 from Bandits import * 
+
+import pdb
 
 #TODO: consider arms with different reward functions
 #TODO: should we compute and plot expected returns for Bayesian bandits over time?
 
 
 # Class definitions
-class BayesianBandit(abc.ABC,Bandit):
+class BayesianBanditSampling(abc.ABC,Bandit):
     """Class (Abstract) for Bayesian Bandits
     
     These type of bandits pick an action based on the probability of the action having the highest expected return
         They update the predictive density of each action based on previous rewards and actions
-        They draw the next action from the latest predictive action density
+        They draw the next action by SAMPLING from the latest predictive action density, then picking most likely option
+            the number of samples balances exploration/exploitation
 
     Attributes (besides inherited):
         reward_prior: the assumed prior of the multi-armed bandit's reward function (dictionary)
         reward_posterior: the posterior of the multi-armed bandit's reward function (dictionary)
         actions_predictive_density: predictive density of each action
+        sampling: sampling strategy for deciding on action
+        n_samples: number of samples for action decision at each time instant
     """
     
-    def __init__(self, K, reward_function, reward_prior):
-        """ Initialize Optimal Bandits with public attributes 
+    def __init__(self, K, reward_function, reward_prior, sampling):
+        """ Initialize Optimal Bandits with public attributes
         
         Args:
             K: size of the multi-armed bandit 
             reward_function: the reward function of the multi-armed bandit
             reward_prior: the assumed prior for the reward function of the multi-armed bandit (dictionary)
+            sampling: sampling strategy for deciding on action
         """
         
         # Initialize bandit (without parameters)
@@ -50,6 +55,9 @@ class BayesianBandit(abc.ABC,Bandit):
                 self.reward_posterior['dist']=reward_prior['dist']
             else:
                 self.reward_posterior[key].append(val)
+                
+        # sampling strategy
+        self.sampling=sampling
     
     @abc.abstractmethod
     def compute_action_predictive_density(self, t):
@@ -88,7 +96,23 @@ class BayesianBandit(abc.ABC,Bandit):
         self.actions_predictive_density=np.zeros((self.K,t_max))
         self.actions=np.zeros((self.K,t_max))
         self.returns=np.zeros((self.K,t_max))
-        self.returns_expected=np.zeros((self.K,t_max))
+        self.returns_expected=np.zeros((self.K,t_max))   
+        
+        # Sampling strategy and number of samples
+        if self.sampling['type'] == 'static':
+            # Static number of samples
+            self.n_samples=self.sampling['n_samples']*np.ones(t_max)
+        elif self.sampling['type'] == 'linear':
+            # Linear number of samples: M_t=m * t +M_0 (enforce at least 1 sample)
+            self.n_samples=np.maximum(self.sampling['M_0']+self.sampling['m']*np.arange(0,t_max),np.ones(t_max))
+        elif self.sampling['type'] == 'logT':
+            # Logarithmic number of samples: M_t=log(t) (used floor+1 to have ints)
+            self.n_samples=np.floor(1+np.log(np.arange(1,t_max+1)))
+        elif self.sampling['type'] == 'sqrtT':
+            # Square root number of samples: M_t=log(t) (used ceiling to have ints)
+            self.n_samples=np.floor(np.sqrt(1+np.arange(0,t_max)))
+        else:
+            raise ValueError('Invalid sampling type={}'.format(self.sampling['type']))     
         
         # Execute the bandit for each time instant
         for t in np.arange(0,t_max):            
@@ -96,7 +120,9 @@ class BayesianBandit(abc.ABC,Bandit):
             self.compute_action_predictive_density(t)
 
             # Draw action from predictive density at this time instant
-            self.actions[:,t]=np.random.multinomial(1,self.actions_predictive_density[:,t])
+            # SAMPLE n_samples and pick the most likely (the number of samples balances exploration/exploitation)
+            #pdb.set_trace()
+            self.actions[np.random.multinomial(1,self.actions_predictive_density[:,t], size=int(self.n_samples[t])).sum(axis=0).argmax(),t]=1
             action = np.where(self.actions[:,t]==1)[0][0]
 
             # Compute return for true reward function
@@ -105,7 +131,7 @@ class BayesianBandit(abc.ABC,Bandit):
             # Update parameter posteriors
             self.update_reward_posterior(t)
 
-class BayesianBanditMonteCarlo(BayesianBandit):
+class BayesianBanditSamplingMonteCarlo(BayesianBanditSampling):
     """Class for Bayesian Bandits that compute the actions predictive density via Monte Carlo sampling
     
     These type of bandits pick an action based on the probability of the action having the highest expected return
@@ -116,7 +142,7 @@ class BayesianBanditMonteCarlo(BayesianBandit):
         M: number of samples to use in the Monte Carlo integration
     """
     
-    def __init__(self, K, reward_function, reward_prior, M):
+    def __init__(self, K, reward_function, reward_prior, n_samples, M):
         """ Initialize Optimal Bandits with public attributes 
         
         Args:
@@ -127,7 +153,7 @@ class BayesianBanditMonteCarlo(BayesianBandit):
         """
         
         # Initialize bandit (without parameters)
-        super().__init__(K, reward_function, reward_prior)
+        super().__init__(K, reward_function, reward_prior, n_samples)
     
         self.M=M
         
@@ -155,13 +181,13 @@ class BayesianBanditMonteCarlo(BayesianBandit):
         else:
             # In general,
             returns_expected_samples=self.reward_function['dist'].mean(reward_params_samples)
-            
+        
         self.returns_expected[:,t]=returns_expected_samples.mean(axis=1)
         
         # Pure Monte Carlo integration: count number of times expected reward is maximum        
         self.actions_predictive_density[:,t]=(((returns_expected_samples.argmax(axis=0)[None,:]==np.arange(self.K)[:,None]).astype(int)).sum(axis=1))/self.M
-        
-class BayesianBanditNumerical(BayesianBandit):
+
+class BayesianBanditSamplingNumerical(BayesianBanditSampling):
     """Class for Bayesian Bandits that compute the actions predictive density via numerical integration
     
     These type of bandits pick an action based on the probability of the action having the highest expected return
@@ -172,7 +198,7 @@ class BayesianBanditNumerical(BayesianBandit):
         M: number of gridpoints to use for the numerical integration
     """
     
-    def __init__(self, K, reward_function, reward_prior, M):
+    def __init__(self, K, reward_function, reward_prior, n_samples, M):
         """ Initialize Optimal Bandits with public attributes 
         
         Args:
@@ -183,7 +209,7 @@ class BayesianBanditNumerical(BayesianBandit):
         """
         
         # Initialize bandit (without parameters)
-        super().__init__(K, reward_function, reward_prior)
+        super().__init__(K, reward_function, reward_prior, n_samples)
     
         self.M=M
         
@@ -229,7 +255,7 @@ class BayesianBanditNumerical(BayesianBandit):
         predictive_density=((self.reward_posterior['dist'][0].pdf(reward_params_grid, *posterior_hyperparams)*cdf_products).sum(axis=1))/delta
         self.actions_predictive_density[:,t]=predictive_density/predictive_density.sum()
 
-class BayesianBanditHybridMonteCarlo(BayesianBandit):
+class BayesianBanditSamplingHybridMonteCarlo(BayesianBanditSampling):
     """Class for Bayesian Bandits that compute the actions predictive density via a hybrid Monte Carlo sampling
     
     These type of bandits pick an action based on the probability of the action having the highest expected return
@@ -240,7 +266,7 @@ class BayesianBanditHybridMonteCarlo(BayesianBandit):
         M: number of samples to use in the Monte Carlo integration
     """
     
-    def __init__(self, K, reward_function, reward_prior, M):
+    def __init__(self, K, reward_function, reward_prior, n_samples, M):
         """ Initialize Optimal Bandits with public attributes 
         
         Args:
@@ -251,7 +277,7 @@ class BayesianBanditHybridMonteCarlo(BayesianBandit):
         """
         
         # Initialize bandit (without parameters)
-        super().__init__(K, reward_function, reward_prior)
+        super().__init__(K, reward_function, reward_prior, n_samples)
     
         self.M=M
         
@@ -291,7 +317,7 @@ class BayesianBanditHybridMonteCarlo(BayesianBandit):
         predictive_density=(cdf_products.sum(axis=1))/self.M
         self.actions_predictive_density[:,t]=predictive_density/predictive_density.sum()
 
-	
+        
 # Making sure the main program is not executed when the module is imported
 if __name__ == '__main__':
     main()
