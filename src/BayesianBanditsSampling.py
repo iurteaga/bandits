@@ -81,8 +81,8 @@ class BayesianBanditSampling(abc.ABC,Bandit):
             s_t=self.returns[:,:t+1].sum(axis=1, keepdims=True)
             # Number of trials up to t (included)
             n_t=self.actions[:,:t+1].sum(axis=1, keepdims=True)
-            self.reward_posterior['alpha'].append(self.reward_prior['alpha']+s_t)
-            self.reward_posterior['beta'].append(self.reward_prior['beta']+(n_t-s_t))
+            self.reward_posterior['alpha'][-1]=self.reward_prior['alpha']+s_t
+            self.reward_posterior['beta'][-1]=self.reward_prior['beta']+(n_t-s_t)
 
         # TODO: Add other reward/prior combinations
         else:
@@ -100,7 +100,8 @@ class BayesianBanditSampling(abc.ABC,Bandit):
         
                 
         # Execute the bandit for each time instant
-        for t in np.arange(0,t_max):            
+        for t in np.arange(0,t_max):
+            #print('Running time instant {}'.format(t))
             # Compute predictive density for expected returns at this time instant
             self.compute_action_predictive_density(t)
 
@@ -145,6 +146,30 @@ class BayesianBanditSampling(abc.ABC,Bandit):
 
             # Update parameter posteriors
             self.update_reward_posterior(t)
+            
+            
+    def execute_realizations(self, R, t_max):
+        """ Execute the bandit for R realizations """
+
+        # Allocate overall variables
+        self.returns_R={'mean':np.zeros((1,t_max)), 'm2':np.zeros((1,t_max)), 'var':np.zeros((1,t_max))}
+        self.returns_expected_R={'mean':np.zeros((self.K,t_max)), 'm2':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
+        self.actions_R={'mean':np.zeros((self.K,t_max)), 'm2':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
+        self.actions_predictive_density_R={'mean':np.zeros((self.K,t_max)), 'm2':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
+        self.n_samples_R={'mean':np.zeros(t_max), 'm2':np.zeros(t_max), 'var':np.zeros(t_max)}
+
+        # Execute all
+        for r in np.arange(1,R+1):
+            # Run one realization
+            #print('Executing realization {}'.format(r))
+            self.execute(t_max)
+
+            # Update overall mean and variance sequentially
+            self.returns_R['mean'], self.returns_R['m2'], self.returns_R['var']=online_update_mean_var(r, self.returns.sum(axis=0), self.returns_R['mean'], self.returns_R['m2'])
+            self.returns_expected_R['mean'], self.returns_expected_R['m2'], self.returns_expected_R['var']=online_update_mean_var(r, self.returns_expected, self.returns_expected_R['mean'], self.returns_expected_R['m2'])
+            self.actions_R['mean'], self.actions_R['m2'], self.actions_R['var']=online_update_mean_var(r, self.actions, self.actions_R['mean'], self.actions_R['m2'])
+            self.actions_predictive_density_R['mean'], self.actions_predictive_density_R['m2'], self.actions_predictive_density_R['var']=online_update_mean_var(r, self.actions_predictive_density['mean'], self.actions_predictive_density_R['mean'], self.actions_predictive_density_R['m2'])
+            self.n_samples_R['mean'], self.n_samples_R['m2'], self.n_samples_R['var']=online_update_mean_var(r, self.n_samples, self.n_samples_R['mean'], self.n_samples_R['m2'])
 
 class BayesianBanditSamplingMonteCarlo(BayesianBanditSampling):
     """Class for Bayesian Bandits with action sampling that compute the actions predictive density via Monte Carlo sampling

@@ -7,10 +7,8 @@
 #PBS -m bae
 #PBS -V
 
-# Wall time
-# 1 day walltime=01:00:00:00
-# 12 hour walltime=12:00:00
-#PBS -l walltime=05:00:00:00
+# Wall time set to max in batch queues
+#PBS -l walltime=120:00:00
 
 # Output and error directories
 #PBS -o localhost:/vega/dsi/users/iu2153/bayesianBandits/yeti/out/$PBS_JOBNAME.out

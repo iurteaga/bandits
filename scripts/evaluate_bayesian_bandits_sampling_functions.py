@@ -12,7 +12,7 @@ from matplotlib import colors
 # Add path and import Bayesian Bandits
 sys.path.append('../src')
 from BayesianBanditsSampling import *
-from Bandit_functions import *
+from plot_bandits import *
 
 # Main code
 def main(K, t_max, R, theta_diff):
@@ -23,8 +23,8 @@ def main(K, t_max, R, theta_diff):
     os.makedirs(dir_string, exist_ok=True)
     
     # Bandit configuration
-    # for theta in combinations_with_replacement(np.arange(0.5,1.0,theta_diff),K):
-    for theta in combinations(np.arange(0,1.0,theta_diff),K):
+    # for theta in combinations_with_replacement(np.arange(0.1,1.0,theta_diff),K):
+    for theta in combinations(np.arange(0.1,1.0,theta_diff),K):
         # For each theta
         theta=np.array([*theta]).reshape(K,1)
         print('theta_{}'.format(np.array_str(theta)))
@@ -36,17 +36,12 @@ def main(K, t_max, R, theta_diff):
         reward_prior={'dist': stats.beta, 'alpha': np.ones((K,1)), 'beta': np.ones((K,1))}
         
         # Bandits to evaluate as a list
-        # Optimal bandit
-        #optimal_bandit=OptimalBandit(K, reward_function)
-        #bandits=[optimal_bandit]
-        #bandits_labels=['Optimal']
         
         # Thompson sampling bandit
         sampling={'type':'static', 'n_samples':1}
         ts_bandit=BayesianBanditSamplingMonteCarlo(K, reward_function, reward_prior, sampling, 1)
         bandits=[ts_bandit]
-        bandits_labels=['TS']
-        
+        bandits_labels=['TS']        
         
         # Monte Carlo Bayesian Bandits Sampling
         M_samples=np.array([100, 500, 1000])
@@ -70,16 +65,9 @@ def main(K, t_max, R, theta_diff):
         bandits_colors=['black', 'blue', 'cyan', 'green', 'lime', 'purple', 'fucsia', 'red', 'orange', 'yellow']
         bandits_colors=[colors.cnames['black'], colors.cnames['blue'], colors.cnames['cyan'], colors.cnames['green'], colors.cnames['lime'], colors.cnames['purple'], colors.cnames['fuchsia'], colors.cnames['red'], colors.cnames['orange'], colors.cnames['yellow']]
         
-        
-        # Execution
-        bandits_returns, bandits_returns_expected, bandits_actions, bandits_predictive, bandits_n_samples=execute_bandits(K, bandits, R, t_max)
-
-        # Data saving
-#            np.save(dir_string+'/theta={}'.format(theta[:,0])+'/bandits', bandits)
-#            np.save(dir_string+'/theta={}'.format(theta[:,0])+'/bandits_returns', bandits_returns)
-#            np.save(dir_string+'/theta={}'.format(theta[:,0])+'/bandits_returns_expected', bandits_returns_expected)            
-#            np.save(dir_string+'/theta={}'.format(theta[:,0])+'/bandits_actions', bandits_actions)
-#            np.save(dir_string+'/theta={}'.format(theta[:,0])+'/bandits_predictive', bandits_predictive)
+        # Execute each bandit
+        for bandit in bandits:
+            bandit.execute_realizations(R, t_max)
         
         ############################### PLOTTING  ############################### 
         # Plotting overall
@@ -91,32 +79,32 @@ def main(K, t_max, R, theta_diff):
         
         # Plot regret
         plot_std=False
-        bandits_plot_regret(returns_expected, bandits_returns, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
+        bandits_plot_regret(returns_expected, bandits, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
         
         # Plot returns expected
         plot_std=True
-        bandits_plot_returns_expected(returns_expected, bandits_returns_expected, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
+        bandits_plot_returns_expected(returns_expected, bandits, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
 
-        # Plot action density
+        # Plot action predictive density
         plot_std=True
-        bandits_plot_action_density(bandits_predictive, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
+        bandits_plot_action_density(bandits, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
         
         # Plot correct action density
         plot_std=False
-        bandits_plot_action_density_correct(bandits_predictive, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
+        bandits_plot_action_density_correct(bandits, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
         
         # Plot actions
         plot_std=True
-        bandits_plot_actions(bandits_actions, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
+        bandits_plot_actions(bandits, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
 
         # Plot correct actions
         plot_std=False
-        bandits_plot_actions_correct(returns_expected, bandits_actions, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
+        bandits_plot_actions_correct(returns_expected, bandits, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
         
         # Plot sample size
         plot_std=False
-        bandits_plot_n_samples(bandits_n_samples, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
-        ###############          
+        bandits_plot_n_samples(bandits, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
+        ###############   
 
             
 # Making sure the main program is not executed when the module is imported
