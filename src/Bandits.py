@@ -17,8 +17,6 @@ def online_update_mean_var(r, new_instance, this_mean, this_m2):
 
     return (new_mean, new_m2, new_var)
 
-
-#TODO: consider arms with different reward functions
 # Class definitions
 class Bandit(object):
     """General Class for Bandits

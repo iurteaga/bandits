@@ -13,11 +13,11 @@ import pdb
 #np.seterr(all='raise')
 
 # Class definitions
-class BayesianBanditSampling(abc.ABC,Bandit):
-    """Class (Abstract) for Bayesian Bandits with action sampling
+class BayesianContextualBanditSampling(abc.ABC,Bandit):
+    """Class (Abstract) for Bayesian Contextual Bandits with action sampling
     
-    These type of bandits pick an action by sampling the next action based on the probability of the action having the highest expected return
-        They update the predictive density of each action based on previous rewards and actions via Bayes update rule
+    These type of bandits pick, given a context, an action by sampling the next action based on the probability of the action having the highest expected return
+        They update the predictive density of each action based on previous context, rewards and actions via Bayes update rule
         They draw the next action by (dynamically) SAMPLING from the latest predictive action density, then picking most likely option
             the number of samples balances exploration/exploitation
             different alternatives for the number of action samples to use are implemented
@@ -45,17 +45,19 @@ class BayesianBanditSampling(abc.ABC,Bandit):
         
         # Reward prior (dictionary)
         self.reward_prior=reward_prior
-        
+                
         # Initialize reward posterior (dictonary)
+        self.reward_posterior=reward_prior
+        '''
         # TODO: The following dictionary list structure would be useful for keeping track over time of the posterior (growing with append)
-        # For memory issues, we do not append, and just update last term
         self.reward_posterior=defaultdict(list)
         for key, val in self.reward_prior.items():
             if key == 'name':
                 self.reward_posterior['dist']=reward_prior['dist']
             else:
                 self.reward_posterior[key].append(val)
-                
+        '''
+         
         # sampling strategy
         self.sampling=sampling
     
@@ -70,28 +72,44 @@ class BayesianBanditSampling(abc.ABC,Bandit):
            
     def update_reward_posterior(self, t):
         # TODO: The code works for batch and sequential updates (although not efficient for sequential)
-        """ Update the posterior of the reward density, based on rewards and actions up until time t
+        """ Update the posterior of the reward density, based on context, rewards and actions up until time t
             This function is fully dependent on the type of prior and reward function
-            
         Args:
             t: time of the execution of the bandit
         """
-        
-        # Binomial/Bernoulli reward with beta conjugate prior
-        if self.reward_function['dist'].name == 'bernoulli' and self.reward_prior['dist'].name == 'beta':
-            # Number of successes up to t (included)        
-            s_t=self.returns[:,:t+1].sum(axis=1, keepdims=True)
-            # Number of trials up to t (included)
-            n_t=self.actions[:,:t+1].sum(axis=1, keepdims=True)
-            self.reward_posterior['alpha'][-1]=self.reward_prior['alpha']+s_t
-            self.reward_posterior['beta'][-1]=self.reward_prior['beta']+(n_t-s_t)
+
+        # Linear Gaussian reward with Normal Inverse Gamma conjugate prior
+        if self.reward_function['type'] == 'linear_gaussian' and self.reward_prior['dist'] == 'NIG':
+            for k in np.arange(self.K):
+                this_a=self.actions[k,:]==1
+                # Update and append Sigma
+                self.reward_posterior['Sigma'][k,:,:]=np.linalg.inv(np.linalg.inv(self.reward_prior['Sigma'][k,:,:])+np.dot(self.context[:,this_a], self.context[:,this_a].T))
+                # Update and append Theta
+                self.reward_posterior['theta'][k,:]=np.dot(self.reward_posterior['Sigma'][k,:,:], np.dot(np.linalg.inv(self.reward_prior['Sigma'][k,:,:]), self.reward_prior['theta'][k,:])+np.dot(self.context[:,this_a], self.returns[k,this_a].T))
+                # Update and append alpha
+                self.reward_posterior['alpha'][k]=self.reward_prior['alpha'][k]+this_a.size/2
+                # Update and append beta
+                self.reward_posterior['beta'][k]=self.reward_prior['beta'][k]+1/2*(
+                np.dot(self.returns[k,this_a], self.returns[k,this_a].T) +
+                np.dot(self.reward_prior['theta'][k,:].T, np.dot(np.linalg.inv(self.reward_prior['Sigma'][k,:,:]), self.reward_prior['theta'][k,:])) -
+                np.dot(self.reward_posterior['theta'][k,:].T, np.dot(np.linalg.inv(self.reward_posterior['Sigma'][k,:,:]), self.reward_posterior['theta'][k,:]))
+                )
 
         # TODO: Add other reward/prior combinations
         else:
             raise ValueError('Invalid reward_function={} with reward_prior={} combination'.format(self.reward_function['dist'].name, self.reward_prior['dist'].name))
         
-    def execute(self, t_max):
-        """ Execute the Bayesian bandit """
+    def execute(self, context, t_max):
+        """ Execute the Bayesian bandit
+        Args:
+            context: d_context by (at_least) t_max array with context at every time instant
+            t_max: maximum time for execution of the bandit
+        """
+        
+        # Context
+        self.d_context=context.shape[0]
+        assert context.shape[1]>=t_max, 'Not enough context provided: context.shape[1]={} while t_max={}'.format(context.shape[1],t_max)
+        self.context=context
         
         # Initialize
         self.actions_predictive_density={'mean':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
@@ -99,7 +117,6 @@ class BayesianBanditSampling(abc.ABC,Bandit):
         self.returns=np.zeros((self.K,t_max))
         self.returns_expected=np.zeros((self.K,t_max))
         self.n_samples=np.ones(t_max)
-        
                 
         # Execute the bandit for each time instant
         for t in np.arange(0,t_max):
@@ -251,10 +268,15 @@ class BayesianBanditSampling(abc.ABC,Bandit):
             # Update parameter posteriors
             self.update_reward_posterior(t)
             
-            
-    def execute_realizations(self, R, t_max):
-        """ Execute the bandit for R realizations """
-
+    def execute_realizations(self, R, context, t_max):
+        """ Execute the bandit for R realizations
+        Args:
+            R: number of realizations to run
+            context: d_context by (at_least) t_max array with context at every time instant
+            TODO: should we have different context per realization???
+            t_max: maximum time for execution of the bandit
+        """
+        
         # Allocate overall variables
         self.returns_R={'mean':np.zeros((1,t_max)), 'm2':np.zeros((1,t_max)), 'var':np.zeros((1,t_max))}
         self.returns_expected_R={'mean':np.zeros((self.K,t_max)), 'm2':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
@@ -266,7 +288,7 @@ class BayesianBanditSampling(abc.ABC,Bandit):
         for r in np.arange(1,R+1):
             # Run one realization
             #print('Executing realization {}'.format(r))
-            self.execute(t_max)
+            self.execute(context, t_max)
 
             # Update overall mean and variance sequentially
             self.returns_R['mean'], self.returns_R['m2'], self.returns_R['var']=online_update_mean_var(r, self.returns.sum(axis=0), self.returns_R['mean'], self.returns_R['m2'])
@@ -275,8 +297,8 @@ class BayesianBanditSampling(abc.ABC,Bandit):
             self.actions_predictive_density_R['mean'], self.actions_predictive_density_R['m2'], self.actions_predictive_density_R['var']=online_update_mean_var(r, self.actions_predictive_density['mean'], self.actions_predictive_density_R['mean'], self.actions_predictive_density_R['m2'])
             self.n_samples_R['mean'], self.n_samples_R['m2'], self.n_samples_R['var']=online_update_mean_var(r, self.n_samples, self.n_samples_R['mean'], self.n_samples_R['m2'])
 
-class BayesianBanditSamplingMonteCarlo(BayesianBanditSampling):
-    """Class for Bayesian Bandits with action sampling that compute the actions predictive density via Monte Carlo sampling
+class BayesianContextualBanditSamplingMonteCarlo(BayesianContextualBanditSampling):
+    """Class for Bayesian Contextual Bandits with action sampling that compute the actions predictive density via Monte Carlo sampling
     
         These class updates the predictive density of each action using Monte Carlo sampling, based on previous rewards and actions
 
@@ -307,26 +329,22 @@ class BayesianBanditSamplingMonteCarlo(BayesianBanditSampling):
         Args:
             t: time of the execution of the bandit
         """
-        
-        # Get posterior hyperparameters
-        if self.reward_prior['dist'].name == 'beta':
-            posterior_hyperparams=(self.reward_posterior['alpha'][-1], self.reward_posterior['beta'][-1])
-        else:
-            raise ValueError('reward_prior={} not implemented yet'.format(self.reward_prior['dist'].name))
-        
-        # Sample reward's parameters, given updated hyperparameters
-        reward_params_samples=self.reward_posterior['dist'][0].rvs(*posterior_hyperparams, size=(self.K,self.M))
-           
-        # Compute expected returns, using updated parameters
-        if self.reward_function['dist'].name == 'bernoulli':                   
-            # Compute expected rewards, from Bernoulli with sampled parameters
-            returns_expected_samples=reward_params_samples
-        else:
-            # In general,
-            returns_expected_samples=self.reward_function['dist'].mean(reward_params_samples)
-        
+
+        returns_expected_samples=np.zeros((self.K, self.M))
+        if self.reward_function['type'] == 'linear_gaussian' and self.reward_prior['dist'] == 'NIG':
+            for k in np.arange(self.K):
+                # Sample reward's parameters (theta), given updated hyperparameters
+                # First sample variance from inverse gamma
+                sigma_samples=stats.invgamma.rvs(self.reward_posterior['alpha'][k], scale=self.reward_posterior['beta'][k], size=(1,self.M))
+                # Then multivariate Gaussian
+                reward_params_samples=self.reward_posterior['theta'][k,:][:,None]+np.sqrt(sigma_samples)*(stats.multivariate_normal.rvs(cov=self.reward_posterior['Sigma'][k,:,:], size=self.M).reshape(self.M,self.d_context).T)
+            
+                # Compute expected rewards, linearly combining context and sampled parameters
+                returns_expected_samples[k,:]=np.dot(self.context[:,t], reward_params_samples)
+
+        # Expected returns
         self.returns_expected[:,t]=returns_expected_samples.mean(axis=1)
-        
+                   
         # Monte Carlo integration for action predictive density
         # Mean times expected reward is maximum
         self.actions_predictive_density['mean'][:,t]=((returns_expected_samples.argmax(axis=0)[None,:]==np.arange(self.K)[:,None]).astype(int)).mean(axis=1)

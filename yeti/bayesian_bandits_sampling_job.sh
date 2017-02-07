@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Directives
-#PBS -N bayesian_bandits_sampling_functions
+#PBS -N bayesian_bandits_sampling_job
 #PBS -W group_list=yetidsi
 #PBS -M iu2153@columbia.edu
 #PBS -m bae
@@ -26,7 +26,7 @@ echo "Starting script $PBS_JOBNAME at $(date)"
 module load anaconda/4.1.1-python-3.5.2
 
 # Run script
-python $PBS_O_INITDIR/../scripts/evaluate_bayesian_bandits_sampling_functions.py -K 2 -t_max 100 -R 1000 -theta_diff 0.1
+python_job_to_run
 
 # Finished
 echo "Done at $(date)"
