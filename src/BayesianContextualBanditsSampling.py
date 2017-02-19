@@ -30,18 +30,18 @@ class BayesianContextualBanditSampling(abc.ABC,Bandit):
         n_samples: number of samples for action decision at each time instant
     """
     
-    def __init__(self, K, reward_function, reward_prior, sampling):
+    def __init__(self, A, reward_function, reward_prior, sampling):
         """ Initialize Bayesian Bandits with public attributes
         
         Args:
-            K: size of the multi-armed bandit 
+            A: size of the multi-armed bandit 
             reward_function: the reward function of the multi-armed bandit
             reward_prior: the assumed prior for the reward function of the multi-armed bandit (dictionary)
             sampling: sampling strategy for deciding on action
         """
         
         # Initialize bandit (without parameters)
-        super().__init__(K, reward_function)
+        super().__init__(A, reward_function)
         
         # Reward prior (dictionary)
         self.reward_prior=reward_prior
@@ -80,19 +80,19 @@ class BayesianContextualBanditSampling(abc.ABC,Bandit):
 
         # Linear Gaussian reward with Normal Inverse Gamma conjugate prior
         if self.reward_function['type'] == 'linear_gaussian' and self.reward_prior['dist'] == 'NIG':
-            for k in np.arange(self.K):
-                this_a=self.actions[k,:]==1
+            for a in np.arange(self.A):
+                this_a=self.actions[a,:]==1
                 # Update and append Sigma
-                self.reward_posterior['Sigma'][k,:,:]=np.linalg.inv(np.linalg.inv(self.reward_prior['Sigma'][k,:,:])+np.dot(self.context[:,this_a], self.context[:,this_a].T))
+                self.reward_posterior['Sigma'][a,:,:]=np.linalg.inv(np.linalg.inv(self.reward_prior['Sigma'][a,:,:])+np.dot(self.context[:,this_a], self.context[:,this_a].T))
                 # Update and append Theta
-                self.reward_posterior['theta'][k,:]=np.dot(self.reward_posterior['Sigma'][k,:,:], np.dot(np.linalg.inv(self.reward_prior['Sigma'][k,:,:]), self.reward_prior['theta'][k,:])+np.dot(self.context[:,this_a], self.returns[k,this_a].T))
+                self.reward_posterior['theta'][a,:]=np.dot(self.reward_posterior['Sigma'][a,:,:], np.dot(np.linalg.inv(self.reward_prior['Sigma'][a,:,:]), self.reward_prior['theta'][a,:])+np.dot(self.context[:,this_a], self.returns[a,this_a].T))
                 # Update and append alpha
-                self.reward_posterior['alpha'][k]=self.reward_prior['alpha'][k]+this_a.size/2
+                self.reward_posterior['alpha'][a]=self.reward_prior['alpha'][a]+this_a.size/2
                 # Update and append beta
-                self.reward_posterior['beta'][k]=self.reward_prior['beta'][k]+1/2*(
-                np.dot(self.returns[k,this_a], self.returns[k,this_a].T) +
-                np.dot(self.reward_prior['theta'][k,:].T, np.dot(np.linalg.inv(self.reward_prior['Sigma'][k,:,:]), self.reward_prior['theta'][k,:])) -
-                np.dot(self.reward_posterior['theta'][k,:].T, np.dot(np.linalg.inv(self.reward_posterior['Sigma'][k,:,:]), self.reward_posterior['theta'][k,:]))
+                self.reward_posterior['beta'][a]=self.reward_prior['beta'][a]+1/2*(
+                np.dot(self.returns[a,this_a], self.returns[a,this_a].T) +
+                np.dot(self.reward_prior['theta'][a,:].T, np.dot(np.linalg.inv(self.reward_prior['Sigma'][a,:,:]), self.reward_prior['theta'][a,:])) -
+                np.dot(self.reward_posterior['theta'][a,:].T, np.dot(np.linalg.inv(self.reward_posterior['Sigma'][a,:,:]), self.reward_posterior['theta'][a,:]))
                 )
 
         # TODO: Add other reward/prior combinations
@@ -112,10 +112,10 @@ class BayesianContextualBanditSampling(abc.ABC,Bandit):
         self.context=context
         
         # Initialize
-        self.actions_predictive_density={'mean':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
-        self.actions=np.zeros((self.K,t_max))
-        self.returns=np.zeros((self.K,t_max))
-        self.returns_expected=np.zeros((self.K,t_max))
+        self.actions_predictive_density={'mean':np.zeros((self.A,t_max)), 'var':np.zeros((self.A,t_max))}
+        self.actions=np.zeros((self.A,t_max))
+        self.returns=np.zeros((self.A,t_max))
+        self.returns_expected=np.zeros((self.A,t_max))
         self.n_samples=np.ones(t_max)
                 
         # Execute the bandit for each time instant
@@ -164,11 +164,11 @@ class BayesianContextualBanditSampling(abc.ABC,Bandit):
                 a_opt=self.actions_predictive_density['mean'][:,t].argmax()
                 p_opt=self.actions_predictive_density['mean'][a_opt,t]
                 # Sufficient statistics for truncated Gaussian evaluation
-                xi=(p_opt-self.actions_predictive_density['mean'][np.arange(self.K)!=a_opt,t])/np.sqrt(self.actions_predictive_density['var'][np.arange(self.K)!=a_opt,t])
-                alpha=(-self.actions_predictive_density['mean'][np.arange(self.K)!=a_opt,t])/np.sqrt(self.actions_predictive_density['var'][np.arange(self.K)!=a_opt,t])
-                beta=(1-self.actions_predictive_density['mean'][np.arange(self.K)!=a_opt,t])/np.sqrt(self.actions_predictive_density['var'][np.arange(self.K)!=a_opt,t])
+                xi=(p_opt-self.actions_predictive_density['mean'][np.arange(self.A)!=a_opt,t])/np.sqrt(self.actions_predictive_density['var'][np.arange(self.A)!=a_opt,t])
+                alpha=(-self.actions_predictive_density['mean'][np.arange(self.A)!=a_opt,t])/np.sqrt(self.actions_predictive_density['var'][np.arange(self.A)!=a_opt,t])
+                beta=(1-self.actions_predictive_density['mean'][np.arange(self.A)!=a_opt,t])/np.sqrt(self.actions_predictive_density['var'][np.arange(self.A)!=a_opt,t])
                 # p_fa
-                p_fa=(1-(stats.norm.cdf(xi)-stats.norm.cdf(alpha))/(stats.norm.cdf(beta)-stats.norm.cdf(alpha))).sum()/(self.K-1)
+                p_fa=(1-(stats.norm.cdf(xi)-stats.norm.cdf(alpha))/(stats.norm.cdf(beta)-stats.norm.cdf(alpha))).sum()/(self.A-1)
                 #n_samples
                 self.n_samples[t]=np.fmin(np.maximum(1/p_fa,1), self.sampling['n_max'])
             elif self.sampling['type'] == 'loginvPFA_tGaussian':
@@ -176,11 +176,11 @@ class BayesianContextualBanditSampling(abc.ABC,Bandit):
                 a_opt=self.actions_predictive_density['mean'][:,t].argmax()
                 p_opt=self.actions_predictive_density['mean'][a_opt,t]
                 # Sufficient statistics for truncated Gaussian evaluation
-                xi=(p_opt-self.actions_predictive_density['mean'][np.arange(self.K)!=a_opt,t])/np.sqrt(self.actions_predictive_density['var'][np.arange(self.K)!=a_opt,t])
-                alpha=(-self.actions_predictive_density['mean'][np.arange(self.K)!=a_opt,t])/np.sqrt(self.actions_predictive_density['var'][np.arange(self.K)!=a_opt,t])
-                beta=(1-self.actions_predictive_density['mean'][np.arange(self.K)!=a_opt,t])/np.sqrt(self.actions_predictive_density['var'][np.arange(self.K)!=a_opt,t])
+                xi=(p_opt-self.actions_predictive_density['mean'][np.arange(self.A)!=a_opt,t])/np.sqrt(self.actions_predictive_density['var'][np.arange(self.A)!=a_opt,t])
+                alpha=(-self.actions_predictive_density['mean'][np.arange(self.A)!=a_opt,t])/np.sqrt(self.actions_predictive_density['var'][np.arange(self.A)!=a_opt,t])
+                beta=(1-self.actions_predictive_density['mean'][np.arange(self.A)!=a_opt,t])/np.sqrt(self.actions_predictive_density['var'][np.arange(self.A)!=a_opt,t])
                 # p_fa
-                p_fa=(1-(stats.norm.cdf(xi)-stats.norm.cdf(alpha))/(stats.norm.cdf(beta)-stats.norm.cdf(alpha))).sum()/(self.K-1)
+                p_fa=(1-(stats.norm.cdf(xi)-stats.norm.cdf(alpha))/(stats.norm.cdf(beta)-stats.norm.cdf(alpha))).sum()/(self.A-1)
                 #n_samples
                 self.n_samples[t]=np.fmin(np.maximum(np.log(1/p_fa),1), self.sampling['n_max'])
             elif self.sampling['type'] == 'log10invPFA_tGaussian':
@@ -188,11 +188,11 @@ class BayesianContextualBanditSampling(abc.ABC,Bandit):
                 a_opt=self.actions_predictive_density['mean'][:,t].argmax()
                 p_opt=self.actions_predictive_density['mean'][a_opt,t]
                 # Sufficient statistics for truncated Gaussian evaluation
-                xi=(p_opt-self.actions_predictive_density['mean'][np.arange(self.K)!=a_opt,t])/np.sqrt(self.actions_predictive_density['var'][np.arange(self.K)!=a_opt,t])
-                alpha=(-self.actions_predictive_density['mean'][np.arange(self.K)!=a_opt,t])/np.sqrt(self.actions_predictive_density['var'][np.arange(self.K)!=a_opt,t])
-                beta=(1-self.actions_predictive_density['mean'][np.arange(self.K)!=a_opt,t])/np.sqrt(self.actions_predictive_density['var'][np.arange(self.K)!=a_opt,t])
+                xi=(p_opt-self.actions_predictive_density['mean'][np.arange(self.A)!=a_opt,t])/np.sqrt(self.actions_predictive_density['var'][np.arange(self.A)!=a_opt,t])
+                alpha=(-self.actions_predictive_density['mean'][np.arange(self.A)!=a_opt,t])/np.sqrt(self.actions_predictive_density['var'][np.arange(self.A)!=a_opt,t])
+                beta=(1-self.actions_predictive_density['mean'][np.arange(self.A)!=a_opt,t])/np.sqrt(self.actions_predictive_density['var'][np.arange(self.A)!=a_opt,t])
                 # p_fa
-                p_fa=(1-(stats.norm.cdf(xi)-stats.norm.cdf(alpha))/(stats.norm.cdf(beta)-stats.norm.cdf(alpha))).sum()/(self.K-1)
+                p_fa=(1-(stats.norm.cdf(xi)-stats.norm.cdf(alpha))/(stats.norm.cdf(beta)-stats.norm.cdf(alpha))).sum()/(self.A-1)
                 #n_samples
                 self.n_samples[t]=np.fmin(np.maximum(np.log10(1/p_fa),1), self.sampling['n_max'])
             elif self.sampling['type'] == 'invPFA_Markov':
@@ -200,7 +200,7 @@ class BayesianContextualBanditSampling(abc.ABC,Bandit):
                 a_opt=self.actions_predictive_density['mean'][:,t].argmax()
                 mu_opt=self.actions_predictive_density['mean'][a_opt,t]
                 # Markov's inequality
-                p_fa=(self.actions_predictive_density['mean'][np.arange(self.K)!=a_opt,t]/mu_opt).sum()/(self.K-1)
+                p_fa=(self.actions_predictive_density['mean'][np.arange(self.A)!=a_opt,t]/mu_opt).sum()/(self.A-1)
                 #n_samples
                 self.n_samples[t]=np.fmin(np.maximum(1/p_fa,1), self.sampling['n_max'])
             elif self.sampling['type'] == 'loginvPFA_Markov':
@@ -208,7 +208,7 @@ class BayesianContextualBanditSampling(abc.ABC,Bandit):
                 a_opt=self.actions_predictive_density['mean'][:,t].argmax()
                 mu_opt=self.actions_predictive_density['mean'][a_opt,t]
                 # Markov's inequality
-                p_fa=(self.actions_predictive_density['mean'][np.arange(self.K)!=a_opt,t]/mu_opt).sum()/(self.K-1)
+                p_fa=(self.actions_predictive_density['mean'][np.arange(self.A)!=a_opt,t]/mu_opt).sum()/(self.A-1)
                 #n_samples
                 self.n_samples[t]=np.fmin(np.maximum(np.log(1/p_fa),1), self.sampling['n_max'])
             elif self.sampling['type'] == 'log10invPFA_Markov':
@@ -216,7 +216,7 @@ class BayesianContextualBanditSampling(abc.ABC,Bandit):
                 a_opt=self.actions_predictive_density['mean'][:,t].argmax()
                 mu_opt=self.actions_predictive_density['mean'][a_opt,t]
                 # Markov's inequality
-                p_fa=(self.actions_predictive_density['mean'][np.arange(self.K)!=a_opt,t]/mu_opt).sum()/(self.K-1)
+                p_fa=(self.actions_predictive_density['mean'][np.arange(self.A)!=a_opt,t]/mu_opt).sum()/(self.A-1)
                 #n_samples
                 self.n_samples[t]=np.fmin(np.maximum(np.log10(1/p_fa),1), self.sampling['n_max'])
             elif self.sampling['type'] == 'invPFA_Chebyshev':
@@ -224,8 +224,8 @@ class BayesianContextualBanditSampling(abc.ABC,Bandit):
                 a_opt=self.actions_predictive_density['mean'][:,t].argmax()
                 mu_opt=self.actions_predictive_density['mean'][a_opt,t]
                 # Chebyshev's inequality
-                delta=mu_opt - self.actions_predictive_density['mean'][np.arange(self.K)!=a_opt,t]
-                p_fa=(self.actions_predictive_density['var'][np.arange(self.K)!=a_opt,t]/np.power(delta,2)).sum()/(self.K-1)
+                delta=mu_opt - self.actions_predictive_density['mean'][np.arange(self.A)!=a_opt,t]
+                p_fa=(self.actions_predictive_density['var'][np.arange(self.A)!=a_opt,t]/np.power(delta,2)).sum()/(self.A-1)
                 #n_samples
                 self.n_samples[t]=np.fmin(np.maximum(1/p_fa,1), self.sampling['n_max'])
             elif self.sampling['type'] == 'loginvPFA_Chebyshev':
@@ -233,8 +233,8 @@ class BayesianContextualBanditSampling(abc.ABC,Bandit):
                 a_opt=self.actions_predictive_density['mean'][:,t].argmax()
                 mu_opt=self.actions_predictive_density['mean'][a_opt,t]
                 # Chebyshev's inequality
-                delta=mu_opt - self.actions_predictive_density['mean'][np.arange(self.K)!=a_opt,t]
-                p_fa=(self.actions_predictive_density['var'][np.arange(self.K)!=a_opt,t]/np.power(delta,2)).sum()/(self.K-1)
+                delta=mu_opt - self.actions_predictive_density['mean'][np.arange(self.A)!=a_opt,t]
+                p_fa=(self.actions_predictive_density['var'][np.arange(self.A)!=a_opt,t]/np.power(delta,2)).sum()/(self.A-1)
                 #n_samples
                 self.n_samples[t]=np.fmin(np.maximum(np.log(1/p_fa),1), self.sampling['n_max'])
             elif self.sampling['type'] == 'log10invPFA_Chebyshev':
@@ -242,8 +242,8 @@ class BayesianContextualBanditSampling(abc.ABC,Bandit):
                 a_opt=self.actions_predictive_density['mean'][:,t].argmax()
                 mu_opt=self.actions_predictive_density['mean'][a_opt,t]
                 # Chebyshev's inequality
-                delta=mu_opt - self.actions_predictive_density['mean'][np.arange(self.K)!=a_opt,t]
-                p_fa=(self.actions_predictive_density['var'][np.arange(self.K)!=a_opt,t]/np.power(delta,2)).sum()/(self.K-1)
+                delta=mu_opt - self.actions_predictive_density['mean'][np.arange(self.A)!=a_opt,t]
+                p_fa=(self.actions_predictive_density['var'][np.arange(self.A)!=a_opt,t]/np.power(delta,2)).sum()/(self.A-1)
                 #n_samples
                 self.n_samples[t]=np.fmin(np.maximum(np.log10(1/p_fa),1), self.sampling['n_max'])
             elif self.sampling['type'] == 'argMax':
@@ -267,35 +267,65 @@ class BayesianContextualBanditSampling(abc.ABC,Bandit):
 
             # Update parameter posteriors
             self.update_reward_posterior(t)
-            
-    def execute_realizations(self, R, context, t_max):
+        
+    def execute_realizations(self, R, context, t_max, exec_type='online'):
         """ Execute the bandit for R realizations
         Args:
             R: number of realizations to run
             context: d_context by (at_least) t_max array with context at every time instant
-            TODO: should we have different context per realization???
             t_max: maximum time for execution of the bandit
         """
         
         # Allocate overall variables
-        self.returns_R={'mean':np.zeros((1,t_max)), 'm2':np.zeros((1,t_max)), 'var':np.zeros((1,t_max))}
-        self.returns_expected_R={'mean':np.zeros((self.K,t_max)), 'm2':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
-        self.actions_R={'mean':np.zeros((self.K,t_max)), 'm2':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
-        self.actions_predictive_density_R={'mean':np.zeros((self.K,t_max)), 'm2':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
-        self.n_samples_R={'mean':np.zeros(t_max), 'm2':np.zeros(t_max), 'var':np.zeros(t_max)}
-
+        if exec_type == 'online':
+            self.returns_R={'mean':np.zeros((1,t_max)), 'm2':np.zeros((1,t_max)), 'var':np.zeros((1,t_max))}
+            self.returns_expected_R={'mean':np.zeros((self.A,t_max)), 'm2':np.zeros((self.A,t_max)), 'var':np.zeros((self.A,t_max))}
+            self.actions_R={'mean':np.zeros((self.A,t_max)), 'm2':np.zeros((self.A,t_max)), 'var':np.zeros((self.A,t_max))}
+            self.actions_predictive_density_R={'mean':np.zeros((self.A,t_max)), 'm2':np.zeros((self.A,t_max)), 'var':np.zeros((self.A,t_max))}
+            self.n_samples_R={'mean':np.zeros(t_max), 'm2':np.zeros(t_max), 'var':np.zeros(t_max)}
+        elif exec_type =='general':
+            self.returns_R={'all':np.zeros((R,1,t_max)), 'mean':np.zeros((1,t_max)), 'var':np.zeros((1,t_max))}
+            self.returns_expected_R={'all':np.zeros((R,self.A,t_max)), 'mean':np.zeros((self.A,t_max)), 'var':np.zeros((self.A,t_max))}
+            self.actions_R={'all':np.zeros((R,self.A,t_max)), 'mean':np.zeros((self.A,t_max)), 'var':np.zeros((self.A,t_max))}
+            self.actions_predictive_density_R={'all':np.zeros((R,self.A,t_max)), 'mean':np.zeros((self.A,t_max)), 'var':np.zeros((self.A,t_max))}
+            self.actions_predictive_density_var_R={'all':np.zeros((R,self.A,t_max)), 'mean':np.zeros((self.A,t_max)), 'var':np.zeros((self.A,t_max))}
+            self.n_samples_R={'all':np.zeros((R,t_max)),'mean':np.zeros(t_max), 'var':np.zeros(t_max)}            
+        else:
+            raise ValueError('Execution type={} not implemented'.format(exec_type))
+            
         # Execute all
-        for r in np.arange(1,R+1):
+        for r in np.arange(R):
             # Run one realization
             #print('Executing realization {}'.format(r))
             self.execute(context, t_max)
 
-            # Update overall mean and variance sequentially
-            self.returns_R['mean'], self.returns_R['m2'], self.returns_R['var']=online_update_mean_var(r, self.returns.sum(axis=0), self.returns_R['mean'], self.returns_R['m2'])
-            self.returns_expected_R['mean'], self.returns_expected_R['m2'], self.returns_expected_R['var']=online_update_mean_var(r, self.returns_expected, self.returns_expected_R['mean'], self.returns_expected_R['m2'])
-            self.actions_R['mean'], self.actions_R['m2'], self.actions_R['var']=online_update_mean_var(r, self.actions, self.actions_R['mean'], self.actions_R['m2'])
-            self.actions_predictive_density_R['mean'], self.actions_predictive_density_R['m2'], self.actions_predictive_density_R['var']=online_update_mean_var(r, self.actions_predictive_density['mean'], self.actions_predictive_density_R['mean'], self.actions_predictive_density_R['m2'])
-            self.n_samples_R['mean'], self.n_samples_R['m2'], self.n_samples_R['var']=online_update_mean_var(r, self.n_samples, self.n_samples_R['mean'], self.n_samples_R['m2'])
+            if exec_type == 'online':
+                # Update overall mean and variance sequentially
+                self.returns_R['mean'], self.returns_R['m2'], self.returns_R['var']=online_update_mean_var(r+1, self.returns.sum(axis=0), self.returns_R['mean'], self.returns_R['m2'])
+                self.returns_expected_R['mean'], self.returns_expected_R['m2'], self.returns_expected_R['var']=online_update_mean_var(r+1, self.returns_expected, self.returns_expected_R['mean'], self.returns_expected_R['m2'])
+                self.actions_R['mean'], self.actions_R['m2'], self.actions_R['var']=online_update_mean_var(r+1, self.actions, self.actions_R['mean'], self.actions_R['m2'])
+                self.actions_predictive_density_R['mean'], self.actions_predictive_density_R['m2'], self.actions_predictive_density_R['var']=online_update_mean_var(r+1, self.actions_predictive_density['mean'], self.actions_predictive_density_R['mean'], self.actions_predictive_density_R['m2'])
+                self.n_samples_R['mean'], self.n_samples_R['m2'], self.n_samples_R['var']=online_update_mean_var(r+1, self.n_samples, self.n_samples_R['mean'], self.n_samples_R['m2'])
+            else:
+                self.returns_R['all'][r,0,:]=self.returns.sum(axis=0)
+                self.returns_expected_R['all'][r,:,:]=self.returns_expected
+                self.actions_R['all'][r,:,:]=self.actions
+                self.actions_predictive_density_R['all'][r,:,:]=self.actions_predictive_density['mean']
+                self.actions_predictive_density_var_R['all'][r,:,:]=self.actions_predictive_density['var']
+                self.n_samples_R['all'][r,:]=self.n_samples
+                
+        if exec_type == 'general':
+            # Compute sufficient statistics
+            self.returns_R['mean']=self.returns_R['all'].mean(axis=0)
+            self.returns_R['var']=self.returns_R['all'].var(axis=0)
+            self.returns_expected_R['mean']=self.returns_expected_R['all'].mean(axis=0)
+            self.returns_expected_R['var']=self.returns_expected_R['all'].var(axis=0)
+            self.actions_R['mean']=self.actions_R['all'].mean(axis=0)
+            self.actions_R['var']=self.actions_R['all'].var(axis=0)
+            self.actions_predictive_density_R['mean']=self.actions_predictive_density_R['all'].mean(axis=0)
+            self.actions_predictive_density_R['var']=self.actions_predictive_density_R['all'].var(axis=0)
+            self.n_samples_R['mean']=self.n_samples_R['all'].mean(axis=0)
+            self.n_samples_R['var']=self.n_samples_R['all'].var(axis=0)
 
 class BayesianContextualBanditSamplingMonteCarlo(BayesianContextualBanditSampling):
     """Class for Bayesian Contextual Bandits with action sampling that compute the actions predictive density via Monte Carlo sampling
@@ -306,18 +336,18 @@ class BayesianContextualBanditSamplingMonteCarlo(BayesianContextualBanditSamplin
         M: number of samples to use in the Monte Carlo integration
     """
     
-    def __init__(self, K, reward_function, reward_prior, n_samples, M):
+    def __init__(self, A, reward_function, reward_prior, n_samples, M):
         """ Initialize Bayesian Bandits with public attributes 
         
         Args:
-            K: size of the multi-armed bandit 
+            A: size of the multi-armed bandit 
             reward_function: the reward function of the multi-armed bandit
             reward_prior: the assumed prior for the reward function of the multi-armed bandit (dictionary)
             M: number of samples to use in the Monte Carlo integration
         """
         
         # Initialize bandit (without parameters)
-        super().__init__(K, reward_function, reward_prior, n_samples)
+        super().__init__(A, reward_function, reward_prior, n_samples)
     
         # Monte carlo samples
         self.M=M
@@ -330,26 +360,26 @@ class BayesianContextualBanditSamplingMonteCarlo(BayesianContextualBanditSamplin
             t: time of the execution of the bandit
         """
 
-        returns_expected_samples=np.zeros((self.K, self.M))
+        returns_expected_samples=np.zeros((self.A, self.M))
         if self.reward_function['type'] == 'linear_gaussian' and self.reward_prior['dist'] == 'NIG':
-            for k in np.arange(self.K):
+            for a in np.arange(self.A):
                 # Sample reward's parameters (theta), given updated hyperparameters
                 # First sample variance from inverse gamma
-                sigma_samples=stats.invgamma.rvs(self.reward_posterior['alpha'][k], scale=self.reward_posterior['beta'][k], size=(1,self.M))
+                sigma_samples=stats.invgamma.rvs(self.reward_posterior['alpha'][a], scale=self.reward_posterior['beta'][a], size=(1,self.M))
                 # Then multivariate Gaussian
-                reward_params_samples=self.reward_posterior['theta'][k,:][:,None]+np.sqrt(sigma_samples)*(stats.multivariate_normal.rvs(cov=self.reward_posterior['Sigma'][k,:,:], size=self.M).reshape(self.M,self.d_context).T)
+                reward_params_samples=self.reward_posterior['theta'][a,:][:,None]+np.sqrt(sigma_samples)*(stats.multivariate_normal.rvs(cov=self.reward_posterior['Sigma'][a,:,:], size=self.M).reshape(self.M,self.d_context).T)
             
                 # Compute expected rewards, linearly combining context and sampled parameters
-                returns_expected_samples[k,:]=np.dot(self.context[:,t], reward_params_samples)
+                returns_expected_samples[a,:]=np.dot(self.context[:,t], reward_params_samples)
 
         # Expected returns
         self.returns_expected[:,t]=returns_expected_samples.mean(axis=1)
                    
         # Monte Carlo integration for action predictive density
         # Mean times expected reward is maximum
-        self.actions_predictive_density['mean'][:,t]=((returns_expected_samples.argmax(axis=0)[None,:]==np.arange(self.K)[:,None]).astype(int)).mean(axis=1)
+        self.actions_predictive_density['mean'][:,t]=((returns_expected_samples.argmax(axis=0)[None,:]==np.arange(self.A)[:,None]).astype(int)).mean(axis=1)
         # Variance of times expected reward is maximum
-        self.actions_predictive_density['var'][:,t]=((returns_expected_samples.argmax(axis=0)[None,:]==np.arange(self.K)[:,None]).astype(int)).var(axis=1)
+        self.actions_predictive_density['var'][:,t]=((returns_expected_samples.argmax(axis=0)[None,:]==np.arange(self.A)[:,None]).astype(int)).var(axis=1)
         
 # Making sure the main program is not executed when the module is imported
 if __name__ == '__main__':

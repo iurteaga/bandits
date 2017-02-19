@@ -22,7 +22,7 @@ class Bandit(object):
     """General Class for Bandits
 
     Attributes:
-        K: size of the multi-armed bandit 
+        A: size of the multi-armed bandit 
         reward_function: the reward function of the multi-armed bandit: dictionary, where distribution and parameters provided
         actions: the actions that the bandit takes (per realization)
         returns: the returns obtained by the bandit (per realization)
@@ -32,14 +32,14 @@ class Bandit(object):
         returns_expected_R: the expected returns of the bandit (for R realizations, 'mean' and 'var')
     """
     
-    def __init__(self, K, reward_function):
+    def __init__(self, A, reward_function):
         """ Initialize the Bandit object and its attributes
         
         Args:
-            K: the size of the bandit
+            A: the size of the bandit
             reward_function: the reward function of the bandit
         """
-        self.K=K
+        self.A=A
         self.reward_function=reward_function
         # Per realization
         self.actions=None
@@ -69,16 +69,16 @@ class OptimalBandit(Bandit):
     Attributes (besides inherited):
     """
     
-    def __init__(self, K, reward_function):
+    def __init__(self, A, reward_function):
         """ Initialize Optimal Bandits with public attributes 
         
         Args:
-            K: size of the multi-armed bandit 
+            A: size of the multi-armed bandit 
             reward_function: the reward function of the multi-armed bandit
         """
 
         # Initialize reward function with provided parameters (frozen distribution)
-        super().__init__(K, reward_function['dist'](*reward_function['args'], **reward_function['kwargs']))
+        super().__init__(A, reward_function['dist'](*reward_function['args'], **reward_function['kwargs']))
         
         # Compute expected returns
         self.compute_expected_returns()
@@ -91,7 +91,7 @@ class OptimalBandit(Bandit):
         """ Execute the optimal bandit """
         
         # Simply draw from optimal action as many times as indicated
-        self.returns=self.reward_function.rvs(size=(self.K,t_max))[self.actions,:]
+        self.returns=self.reward_function.rvs(size=(self.A,t_max))[self.actions,:]
         
     def execute_realizations(self, R, t_max):
         """ Execute the optimal bandit for R realizations """
@@ -108,10 +108,10 @@ class OptimalBandit(Bandit):
             self.returns_R['mean'], self.returns_R['m2'], self.returns_R['var']=online_update_mean_var(r, self.returns.sum(axis=0), self.returns_R['mean'], self.returns_R['m2'])
 
         # Actions are the same all the time
-        self.actions_R={'mean':self.actions, 'var':np.zeros((self.K,t_max))}
+        self.actions_R={'mean':self.actions, 'var':np.zeros((self.A,t_max))}
 
         # Expected returns are the same all the time
-        self.returns_expected_R={'mean':self.returns_expected*np.ones((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
+        self.returns_expected_R={'mean':self.returns_expected*np.ones((self.A,t_max)), 'var':np.zeros((self.A,t_max))}
         
         
 class ProbabilisticBandit(Bandit):
@@ -122,16 +122,16 @@ class ProbabilisticBandit(Bandit):
     Attributes (besides inherited):
     """
     
-    def __init__(self, K, reward_function):
+    def __init__(self, A, reward_function):
         """ Initialize Optimal Bandits with public attributes 
         
         Args:
-            K: size of the multi-armed bandit 
+            A: size of the multi-armed bandit 
             reward_function: the reward function of the multi-armed bandit
         """
 
         # Initialize reward function with provided parameters (frozen distribution)
-        super().__init__(K, reward_function['dist'](*reward_function['args'], **reward_function['kwargs']))
+        super().__init__(A, reward_function['dist'](*reward_function['args'], **reward_function['kwargs']))
         
         # Compute expected returns
         self.compute_expected_returns()
@@ -140,8 +140,8 @@ class ProbabilisticBandit(Bandit):
         """ Execute the probabilistic bandit """
         
         # Initialize
-        self.actions=np.zeros((self.K,t_max))
-        self.returns=np.zeros((self.K,t_max))
+        self.actions=np.zeros((self.A,t_max))
+        self.returns=np.zeros((self.A,t_max))
         
         # Execute the bandit for each time instant
         for t in np.arange(0,t_max):
@@ -157,7 +157,7 @@ class ProbabilisticBandit(Bandit):
 
         # Allocate overall variables
         self.returns_R={'mean':np.zeros((1,t_max)), 'm2':np.zeros((1,t_max)), 'var':np.zeros((1,t_max))}
-        self.actions_R={'mean':np.zeros((self.K,t_max)), 'm2':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}        
+        self.actions_R={'mean':np.zeros((self.A,t_max)), 'm2':np.zeros((self.A,t_max)), 'var':np.zeros((self.A,t_max))}        
 
         # Execute all
         for r in np.arange(1,R+1):
@@ -169,7 +169,7 @@ class ProbabilisticBandit(Bandit):
             self.actions_R['mean'], self.actions_R['m2'], self.actions_R['var']=online_update_mean_var(r, self.actions, self.actions_R['mean'], self.actions_R['m2'])
 
         # Expected returns are the same all the time
-        self.returns_expected_R={'mean':self.returns_expected*np.ones((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
+        self.returns_expected_R={'mean':self.returns_expected*np.ones((self.A,t_max)), 'var':np.zeros((self.A,t_max))}
 	
 # Making sure the main program is not executed when the module is imported
 if __name__ == '__main__':

@@ -24,21 +24,21 @@ class BayesianContextualBandit(BayesianBandit):
         actions_predictive_density: predictive density of each action
     """
     
-    def __init__(self, K, context_per_action, reward_function, reward_prior):
+    def __init__(self, A, context_per_action, reward_function, reward_prior):
         """ Initialize Optimal Bandits with public attributes 
         
         Args:
-            K: size of the multi-armed bandit 
+            A: size of the multi-armed bandit 
             context_per_action: the context for each action (\ie vector of features per action)
             reward_function: the reward function of the multi-armed bandit
             reward_prior: the assumed prior for the reward function of the multi-armed bandit (dictionary)
         """
         
         # Initialize bandit (without parameters)
-        super().__init__(K, reward_function, reward_prior)
+        super().__init__(A, reward_function, reward_prior)
         
         # Context per action
-        assert context_per_action.shape[0]==K, 'context_per_action must be K={} by d_context, not {}'.format(K, context_per_action.shape)
+        assert context_per_action.shape[0]==A, 'context_per_action must be A={} by d_context, not {}'.format(A, context_per_action.shape)
         self.d_context=context_per_action.shape[1]
         self.context_per_action = context_per_action
     
@@ -93,10 +93,10 @@ class BayesianContextualBandit(BayesianBandit):
             
         
         # Initialize
-        self.actions_predictive_density=np.zeros((self.K,t_max))
-        self.actions=np.zeros((self.K,t_max))
+        self.actions_predictive_density=np.zeros((self.A,t_max))
+        self.actions=np.zeros((self.A,t_max))
         self.actions_context=np.zeros((self.d_context,t_max))
-        self.returns=np.zeros((self.K,t_max))
+        self.returns=np.zeros((self.A,t_max))
         
         # Execute the bandit for each time instant
         for t in np.arange(0,t_max):            
@@ -125,11 +125,11 @@ class BayesianContextualBanditMonteCarlo(BayesianContextualBandit):
         M: number of samples to use in the Monte Carlo integration
     """
     
-    def __init__(self, K, context_per_action, reward_function, reward_prior, M):
+    def __init__(self, A, context_per_action, reward_function, reward_prior, M):
         """ Initialize Optimal Bandits with public attributes 
         
         Args:
-            K: size of the multi-armed bandit
+            A: size of the multi-armed bandit
             context_per_action: the context for each action (\ie vector of features per action)
             reward_function: the reward function of the multi-armed bandit
             reward_prior: the assumed prior for the reward function of the multi-armed bandit (dictionary)
@@ -137,7 +137,7 @@ class BayesianContextualBanditMonteCarlo(BayesianContextualBandit):
         """
         
         # Initialize bandit (without parameters)
-        super().__init__(K, context_per_action, reward_function, reward_prior)
+        super().__init__(A, context_per_action, reward_function, reward_prior)
     
         self.M=M
         
@@ -167,7 +167,7 @@ class BayesianContextualBanditMonteCarlo(BayesianContextualBandit):
             raise ValueError('Invalid reward_function={} with reward_prior={} combination'.format(self.reward_function['type'], self.reward_prior['dist']))
         
         # Pure Monte Carlo integration: count number of times expected reward is maximum        
-        self.actions_predictive_density[:,t]=(((returns_expected_samples.argmax(axis=0)[None,:]==np.arange(self.K)[:,None]).astype(int)).sum(axis=1))/self.M
+        self.actions_predictive_density[:,t]=(((returns_expected_samples.argmax(axis=0)[None,:]==np.arange(self.A)[:,None]).astype(int)).sum(axis=1))/self.M
         
 	
 # Making sure the main program is not executed when the module is imported

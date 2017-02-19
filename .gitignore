@@ -4,3 +4,6 @@ __pycache__
 
 # Results folder
 results
+
+# Plots in scripting folder
+scripts/plots

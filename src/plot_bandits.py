@@ -69,22 +69,22 @@ def bandits_plot_returns_expected(returns_expected, bandits, colors, labels, t_p
     """
     
     # Expected returns per arm, over time
-    for k in np.arange(0,bandits[0].K):
+    for a in np.arange(0,bandits[0].A):
         plt.figure()
-        plt.plot(np.arange(t_plot), returns_expected[k]*np.ones(t_plot), 'k', label='Expected')
+        plt.plot(np.arange(t_plot), returns_expected[a]*np.ones(t_plot), 'k', label='Expected')
         for (n,bandit) in enumerate(bandits):
-            plt.plot(np.arange(t_plot), bandit.returns_expected_R['mean'][k,0:t_plot], colors[n], label=labels[n]+' actions')
+            plt.plot(np.arange(t_plot), bandit.returns_expected_R['mean'][a,0:t_plot], colors[n], label=labels[n]+' actions')
             if plot_std:
-                plt.fill_between(np.arange(t_plot), bandit.returns_expected_R['mean'][k,0:t_plot]-np.sqrt(bandit.returns_expected_R['var'][k,0:t_plot]), bandit.returns_expected_R['mean'][k,0:t_plot]+np.sqrt(bandit.returns_expected_R['var'][k,0:t_plot]),alpha=0.5, facecolor=colors[n])
+                plt.fill_between(np.arange(t_plot), bandit.returns_expected_R['mean'][a,0:t_plot]-np.sqrt(bandit.returns_expected_R['var'][a,0:t_plot]), bandit.returns_expected_R['mean'][a,0:t_plot]+np.sqrt(bandit.returns_expected_R['var'][a,0:t_plot]),alpha=0.5, facecolor=colors[n])
         plt.ylabel(r'$E\{\mu_{a,t}\}$')
         plt.xlabel('t')
-        plt.title('Expected returns over time for arm {}'.format(k))
+        plt.title('Expected returns over time for arm {}'.format(a))
         plt.xlim([0, t_plot-1])
         legend = plt.legend(bbox_to_anchor=(1.05,1.05), loc='upper left', ncol=1, shadow=True)
         if plot_save is None: 
             plt.show()
         else:
-            plt.savefig(plot_save+'/returns_expected_{}_std{}.pdf'.format(k,str(plot_std)), format='pdf', bbox_inches='tight')
+            plt.savefig(plot_save+'/returns_expected_{}_std{}.pdf'.format(a,str(plot_std)), format='pdf', bbox_inches='tight')
             plt.close()
 
 # Bandit plotting function: regrets 
@@ -142,21 +142,21 @@ def bandits_plot_action_density(bandits, colors, labels, t_plot, plot_std=True, 
     """
     
     # Action predictive density probabilities over time
-    for k in np.arange(0,bandits[0].K):
+    for a in np.arange(0,bandits[0].A):
         plt.figure()
         for (n,bandit) in enumerate(bandits):
-            plt.plot(np.arange(t_plot), bandit.actions_predictive_density_R['mean'][k,0:t_plot], colors[n], label=labels[n])
+            plt.plot(np.arange(t_plot), bandit.actions_predictive_density_R['mean'][a,0:t_plot], colors[n], label=labels[n])
             if plot_std:
-                plt.fill_between(np.arange(t_plot), bandit.actions_predictive_density_R['mean'][k,0:t_plot]-np.sqrt(bandit.actions_predictive_density_R['var'][k,0:t_plot]), bandit.actions_predictive_density_R['mean'][k,0:t_plot]+np.sqrt(bandit.actions_predictive_density_R['var'][k,0:t_plot]),alpha=0.5, facecolor=colors[n])
+                plt.fill_between(np.arange(t_plot), bandit.actions_predictive_density_R['mean'][a,0:t_plot]-np.sqrt(bandit.actions_predictive_density_R['var'][a,0:t_plot]), bandit.actions_predictive_density_R['mean'][a,0:t_plot]+np.sqrt(bandit.actions_predictive_density_R['var'][a,0:t_plot]),alpha=0.5, facecolor=colors[n])
         plt.ylabel(r'$f(a_{t+1}=a|a_{1:t}, y_{1:t})$')
         plt.xlabel('t')
-        plt.title('Averaged Action Predictive density probabilities for arm {}'.format(k))
+        plt.title('Averaged Action Predictive density probabilities for arm {}'.format(a))
         plt.xlim([0, t_plot-1])
         legend = plt.legend(bbox_to_anchor=(1.05,1.05), loc='upper left', ncol=1, shadow=True)
         if plot_save is None: 
             plt.show()
         else:
-            plt.savefig(plot_save+'/action_density_{}_std{}.pdf'.format(k,str(plot_std)), format='pdf', bbox_inches='tight')
+            plt.savefig(plot_save+'/action_density_{}_std{}.pdf'.format(a,str(plot_std)), format='pdf', bbox_inches='tight')
             plt.close()
 
 # Bandit plotting function: correct action predictive density percentages
@@ -169,7 +169,7 @@ def bandits_plot_action_density_correct(bandits, colors, labels, t_plot, plot_st
     """
     plt.figure()
     for (n,bandit) in enumerate(bandits):
-        plt.plot(np.arange(t_plot), (bandit.actions_predictive_density_R['mean'].argmax(axis=0)==(bandit.K-1)).astype(int), colors[n], label=labels[n])
+        plt.plot(np.arange(t_plot), (bandit.actions_predictive_density_R['mean'].argmax(axis=0)==(bandit.A-1)).astype(int), colors[n], label=labels[n])
     plt.xlabel('t')
     plt.ylabel('% Correct')
     plt.title('Correct action predictive density percentage')
@@ -191,21 +191,21 @@ def bandits_plot_actions(bandits, colors, labels, t_plot, plot_std=True, plot_sa
     """
       
     # Action probabilities over time
-    for k in np.arange(0,bandits[0].K):
+    for a in np.arange(0,bandits[0].A):
         plt.figure()
         for (n,bandit) in enumerate(bandits):
-            plt.plot(np.arange(t_plot), bandit.actions_R['mean'][k,0:t_plot], colors[n], label=labels[n]+' actions')
+            plt.plot(np.arange(t_plot), bandit.actions_R['mean'][a,0:t_plot], colors[n], label=labels[n]+' actions')
             if plot_std:
-                plt.fill_between(np.arange(t_plot), bandit.actions_R['mean'][k,0:t_plot]-np.sqrt(bandit.actions_R['var'][k,0:t_plot]), bandit.actions_R['mean'][k,0:t_plot]+np.sqrt(bandit.actions_R['var'][k,0:t_plot]),alpha=0.5, facecolor=colors[n])
+                plt.fill_between(np.arange(t_plot), bandit.actions_R['mean'][a,0:t_plot]-np.sqrt(bandit.actions_R['var'][a,0:t_plot]), bandit.actions_R['mean'][a,0:t_plot]+np.sqrt(bandit.actions_R['var'][a,0:t_plot]),alpha=0.5, facecolor=colors[n])
         plt.ylabel(r'$f(a_{t+1}=a|a_{1:t}, y_{1:t})$')
         plt.xlabel('t')
-        plt.title('Averaged Action probabilities for arm {}'.format(k))
+        plt.title('Averaged Action probabilities for arm {}'.format(a))
         plt.xlim([0, t_plot-1])
         legend = plt.legend(bbox_to_anchor=(1.05,1.05), loc='upper left', ncol=1, shadow=True)
         if plot_save is None: 
             plt.show()
         else:
-            plt.savefig(plot_save+'/actions_{}_std{}.pdf'.format(k,str(plot_std)), format='pdf', bbox_inches='tight')
+            plt.savefig(plot_save+'/actions_{}_std{}.pdf'.format(a,str(plot_std)), format='pdf', bbox_inches='tight')
             plt.close()
 
 # Bandit plotting function: correct actions

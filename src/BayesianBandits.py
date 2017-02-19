@@ -28,17 +28,17 @@ class BayesianBandit(abc.ABC,Bandit):
         actions_predictive_density_R: predictive density of each action (for R realizations, 'mean' and 'var')
     """
     
-    def __init__(self, K, reward_function, reward_prior):
+    def __init__(self, A, reward_function, reward_prior):
         """ Initialize Optimal Bandits with public attributes 
         
         Args:
-            K: size of the multi-armed bandit 
+            A: size of the multi-armed bandit 
             reward_function: the reward function of the multi-armed bandit
             reward_prior: the assumed prior for the reward function of the multi-armed bandit (dictionary)
         """
         
         # Initialize bandit (without parameters)
-        super().__init__(K, reward_function)
+        super().__init__(A, reward_function)
         
         # Reward prior (dictionary)
         self.reward_prior=reward_prior
@@ -86,10 +86,10 @@ class BayesianBandit(abc.ABC,Bandit):
         """ Execute the Bayesian bandit """
         
         # Initialize
-        self.actions_predictive_density=np.zeros((self.K,t_max))
-        self.actions=np.zeros((self.K,t_max))
-        self.returns=np.zeros((self.K,t_max))
-        self.returns_expected=np.zeros((self.K,t_max))
+        self.actions_predictive_density=np.zeros((self.A,t_max))
+        self.actions=np.zeros((self.A,t_max))
+        self.returns=np.zeros((self.A,t_max))
+        self.returns_expected=np.zeros((self.A,t_max))
         
         # Execute the bandit for each time instant
         for t in np.arange(0,t_max):            
@@ -111,9 +111,9 @@ class BayesianBandit(abc.ABC,Bandit):
 
         # Allocate overall variables
         self.returns_R={'mean':np.zeros((1,t_max)), 'm2':np.zeros((1,t_max)), 'var':np.zeros((1,t_max))}
-        self.returns_expected_R={'mean':np.zeros((self.K,t_max)), 'm2':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
-        self.actions_R={'mean':np.zeros((self.K,t_max)), 'm2':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
-        self.actions_predictive_density_R={'mean':np.zeros((self.K,t_max)), 'm2':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
+        self.returns_expected_R={'mean':np.zeros((self.A,t_max)), 'm2':np.zeros((self.A,t_max)), 'var':np.zeros((self.A,t_max))}
+        self.actions_R={'mean':np.zeros((self.A,t_max)), 'm2':np.zeros((self.A,t_max)), 'var':np.zeros((self.A,t_max))}
+        self.actions_predictive_density_R={'mean':np.zeros((self.A,t_max)), 'm2':np.zeros((self.A,t_max)), 'var':np.zeros((self.A,t_max))}
 
         # Execute all
         for r in np.arange(1,R+1):
@@ -137,18 +137,18 @@ class BayesianBanditMonteCarlo(BayesianBandit):
         M: number of samples to use in the Monte Carlo integration
     """
     
-    def __init__(self, K, reward_function, reward_prior, M):
+    def __init__(self, A, reward_function, reward_prior, M):
         """ Initialize Optimal Bandits with public attributes 
         
         Args:
-            K: size of the multi-armed bandit 
+            A: size of the multi-armed bandit 
             reward_function: the reward function of the multi-armed bandit
             reward_prior: the assumed prior for the reward function of the multi-armed bandit (dictionary)
             M: number of samples to use in the Monte Carlo integration
         """
         
         # Initialize bandit (without parameters)
-        super().__init__(K, reward_function, reward_prior)
+        super().__init__(A, reward_function, reward_prior)
     
         self.M=M
         
@@ -167,7 +167,7 @@ class BayesianBanditMonteCarlo(BayesianBandit):
             raise ValueError('reward_prior={} not implemented yet'.format(self.reward_prior['dist'].name))
         
         # Sample reward's parameters, given updated hyperparameters
-        reward_params_samples=self.reward_posterior['dist'][0].rvs(*posterior_hyperparams, size=(self.K,self.M))
+        reward_params_samples=self.reward_posterior['dist'][0].rvs(*posterior_hyperparams, size=(self.A,self.M))
            
         # Compute expected returns, using updated parameters
         if self.reward_function['dist'].name == 'bernoulli':                   
@@ -180,7 +180,7 @@ class BayesianBanditMonteCarlo(BayesianBandit):
         self.returns_expected[:,t]=returns_expected_samples.mean(axis=1)
         
         # Pure Monte Carlo integration: count number of times expected reward is maximum        
-        self.actions_predictive_density[:,t]=(((returns_expected_samples.argmax(axis=0)[None,:]==np.arange(self.K)[:,None]).astype(int)).sum(axis=1))/self.M
+        self.actions_predictive_density[:,t]=(((returns_expected_samples.argmax(axis=0)[None,:]==np.arange(self.A)[:,None]).astype(int)).sum(axis=1))/self.M
         
 class BayesianBanditNumerical(BayesianBandit):
     """Class for Bayesian Bandits that compute the actions predictive density via numerical integration
@@ -193,18 +193,18 @@ class BayesianBanditNumerical(BayesianBandit):
         M: number of gridpoints to use for the numerical integration
     """
     
-    def __init__(self, K, reward_function, reward_prior, M):
+    def __init__(self, A, reward_function, reward_prior, M):
         """ Initialize Optimal Bandits with public attributes 
         
         Args:
-            K: size of the multi-armed bandit 
+            A: size of the multi-armed bandit 
             reward_function: the reward function of the multi-armed bandit
             reward_prior: the assumed prior for the reward function of the multi-armed bandit (dictionary)
             M: number of gridpoints to use for the numerical integration
         """
         
         # Initialize bandit (without parameters)
-        super().__init__(K, reward_function, reward_prior)
+        super().__init__(A, reward_function, reward_prior)
     
         self.M=M
         
@@ -239,12 +239,12 @@ class BayesianBanditNumerical(BayesianBandit):
         
         # All CDFs, with updated posterior hyperparameters
         all_cdfs=self.reward_posterior['dist'][0].cdf(returns_expected_grid, *posterior_hyperparams)
-        all_index=np.arange(0,self.K)
+        all_index=np.arange(0,self.A)
         
-        # Product of K-1 CDFs in k
-        cdf_products=np.zeros((self.K,self.M))
-        for k in all_index:
-            cdf_products[k,:]=all_cdfs[np.setdiff1d(all_index,k),:].prod(axis=0, keepdims=True)
+        # Product of A-1 CDFs in a
+        cdf_products=np.zeros((self.A,self.M))
+        for a in all_index:
+            cdf_products[a,:]=all_cdfs[np.setdiff1d(all_index,a),:].prod(axis=0, keepdims=True)
         
         # Numerical integration
         predictive_density=((self.reward_posterior['dist'][0].pdf(reward_params_grid, *posterior_hyperparams)*cdf_products).sum(axis=1))/delta
@@ -261,18 +261,18 @@ class BayesianBanditHybridMonteCarlo(BayesianBandit):
         M: number of samples to use in the Monte Carlo integration
     """
     
-    def __init__(self, K, reward_function, reward_prior, M):
+    def __init__(self, A, reward_function, reward_prior, M):
         """ Initialize Optimal Bandits with public attributes 
         
         Args:
-            K: size of the multi-armed bandit 
+            A: size of the multi-armed bandit 
             reward_function: the reward function of the multi-armed bandit
             reward_prior: the assumed prior for the reward function of the multi-armed bandit (dictionary)
             M: number of samples to use in the Monte Carlo integration
         """
         
         # Initialize bandit (without parameters)
-        super().__init__(K, reward_function, reward_prior)
+        super().__init__(A, reward_function, reward_prior)
     
         self.M=M
         
@@ -291,7 +291,7 @@ class BayesianBanditHybridMonteCarlo(BayesianBandit):
             raise ValueError('reward_prior={} not implemented yet'.format(self.reward_prior['dist'].name))
         
         # Sample reward's parameters, given updated hyperparameters
-        reward_params_samples=self.reward_posterior['dist'][0].rvs(*posterior_hyperparams, size=(self.K,self.M))
+        reward_params_samples=self.reward_posterior['dist'][0].rvs(*posterior_hyperparams, size=(self.A,self.M))
         
         # Compute expected returns, using updated parameters
         if self.reward_function['dist'].name == 'bernoulli':                   
@@ -301,12 +301,12 @@ class BayesianBanditHybridMonteCarlo(BayesianBandit):
             # In general,
             returns_expected_samples=self.reward_function['dist'].mean(reward_params_samples)
         
-        # Product of K-1 CDFs in k
-        all_index=np.arange(0,self.K)
-        cdf_products=np.zeros((self.K,self.M))
-        for k in all_index:
-            not_k=np.setdiff1d(all_index,k)
-            cdf_products[k,:]=self.reward_posterior['dist'][0].cdf(returns_expected_samples[k,:], *posterior_hyperparams)[not_k].prod(axis=0, keepdims=True)
+        # Product of A-1 CDFs in a
+        all_index=np.arange(0,self.A)
+        cdf_products=np.zeros((self.A,self.M))
+        for a in all_index:
+            not_a=np.setdiff1d(all_index,a)
+            cdf_products[a,:]=self.reward_posterior['dist'][0].cdf(returns_expected_samples[a,:], *posterior_hyperparams)[not_a].prod(axis=0, keepdims=True)
             
         # Hybrid Monte-Carlo integration: Weighted CDF products at sampled points
         predictive_density=(cdf_products.sum(axis=1))/self.M
