@@ -15,7 +15,7 @@ from BayesianBanditsSampling import *
 from plot_bandits import *
 
 # Main code
-def main(K, t_max, R, M, theta_min, theta_max, theta_diff):
+def main(K, t_max, R, exec_type, M, theta_min, theta_max, theta_diff):
     print('Ploting for bayesian {}-armed bayesian bandit with for {} time-instants and {} realizations'.format(K, t_max, R))
 
     # Save dir
@@ -69,24 +69,37 @@ def main(K, t_max, R, M, theta_min, theta_max, theta_diff):
         bandit_log10invPFA_tGaussian_id=3
         bandit_loginvPFA_Markov_id=5
         bandit_loginvPFA_Chebyshev_id=8
+
         # Cumulative regret
         TS_cumregret=(theta.max()-bandits[TS_id].returns_R['mean'][0,0:t_max]).cumsum()
         TS_cumregret_sigma=np.sqrt(bandits[TS_id].returns_R['var'][0,0:t_max])
+        if exec_type == 'general':
+            TS_cumregret_all=(theta.max()-bandits[TS_id].returns_R['all']).cumsum(axis=2)
+            TS_actions_correct=(bandits[TS_id].actions_R['all'][:,theta.argmax(),:].sum(axis=0))/R
 
         bandit_log10invPFA_tGaussian_cumregret=(theta.max()-bandits[bandit_log10invPFA_tGaussian_id].returns_R['mean'][0,0:t_max]).cumsum()
         bandit_log10invPFA_tGaussian_cumregret_sigma=np.sqrt(bandits[bandit_log10invPFA_tGaussian_id].returns_R['var'][0,0:t_max])        
         bandit_log10invPFA_tGaussian_diff=bandit_log10invPFA_tGaussian_cumregret-TS_cumregret
         bandit_log10invPFA_tGaussian_reldiff=bandit_log10invPFA_tGaussian_diff/TS_cumregret
-
+        if exec_type == 'general':
+            bandit_log10invPFA_tGaussian_cumregret_all=(theta.max()-bandits[bandit_log10invPFA_tGaussian_id].returns_R['all']).cumsum(axis=2)
+            bandit_log10invPFA_tGaussian_actions_correct=(bandits[bandit_log10invPFA_tGaussian_id].actions_R['all'][:,theta.argmax(),:].sum(axis=0))/R
+            
         bandit_loginvPFA_Markov_cumregret=(theta.max()-bandits[bandit_loginvPFA_Markov_id].returns_R['mean'][0,0:t_max]).cumsum()
         bandit_loginvPFA_Markov_cumregret_sigma=np.sqrt(bandits[bandit_loginvPFA_Markov_id].returns_R['var'][0,0:t_max])
         bandit_loginvPFA_Markov_diff=bandit_loginvPFA_Markov_cumregret-TS_cumregret
         bandit_loginvPFA_Markov_reldiff=bandit_loginvPFA_Markov_diff/TS_cumregret
+        if exec_type == 'general':
+            bandit_loginvPFA_Markov_cumregret_all=(theta.max()-bandits[bandit_loginvPFA_Markov_id].returns_R['all']).cumsum(axis=2)
+            bandit_loginvPFA_Markov_actions_correct=(bandits[bandit_loginvPFA_Markov_id].actions_R['all'][:,theta.argmax(),:].sum(axis=0))/R
 
         bandit_loginvPFA_Chebyshev_cumregret=(theta.max()-bandits[bandit_loginvPFA_Chebyshev_id].returns_R['mean'][0,0:t_max]).cumsum()
         bandit_loginvPFA_Chebyshev_cumregret_sigma=np.sqrt(bandits[bandit_loginvPFA_Chebyshev_id].returns_R['var'][0,0:t_max])
         bandit_loginvPFA_Chebyshev_diff=bandit_loginvPFA_Chebyshev_cumregret-TS_cumregret
         bandit_loginvPFA_Chebyshev_reldiff=bandit_loginvPFA_Chebyshev_diff/TS_cumregret
+        if exec_type == 'general':
+            bandit_loginvPFA_Chebyshev_cumregret_all=(theta.max()-bandits[bandit_loginvPFA_Chebyshev_id].returns_R['all']).cumsum(axis=2)
+            bandit_loginvPFA_Chebyshev_actions_correct=(bandits[bandit_loginvPFA_Chebyshev_id].actions_R['all'][:,theta.argmax(),:].sum(axis=0))/R
         
         # Plot
         os.makedirs(save_dir+'/theta={}'.format(theta[:,0]), exist_ok=True)
@@ -121,6 +134,35 @@ def main(K, t_max, R, M, theta_min, theta_max, theta_diff):
         legend = plt.legend(bbox_to_anchor=(1.05,1.05), loc='upper left', ncol=1, shadow=True)
         plt.savefig(save_dir+'/theta={}/regret_cumulative_sigma.pdf'.format(theta[:,0]), format='pdf', bbox_inches='tight')
         plt.close()
+        
+        if exec_type == 'general':
+            t_hist=10
+            # Cumregret histograms
+            plt.figure()
+            plt.hist(TS_cumregret_all[:,0,t_hist], normed=1, color='k', label=bandits_labels[TS_id])
+            plt.hist(bandit_log10invPFA_tGaussian_cumregret_all[:,0,t_hist], normed=1, color='b', label=bandits_labels[bandit_log10invPFA_tGaussian_id])
+            plt.hist(bandit_loginvPFA_Markov_cumregret_all[:,0,t_hist], normed=1, color='g', label=bandits_labels[bandit_loginvPFA_Markov_id])
+            plt.hist(bandit_loginvPFA_Chebyshev_cumregret_all[:,0,t_hist], normed=1, color='r', label=bandits_labels[bandit_loginvPFA_Chebyshev_id])
+            plt.xlabel(r'$L_t=\sum_{t=0}^T y_t^*-y_t$')
+            plt.ylabel('pdf')
+            plt.title('Cumulative regret histogram at t={}'.format(t_hist))
+            legend = plt.legend(bbox_to_anchor=(1.05,1.05), loc='upper left', ncol=1, shadow=True)
+            plt.savefig(save_dir+'/theta={}/regret_cumulative_hist_{}.pdf'.format(theta[:,0], t_hist), format='pdf', bbox_inches='tight')
+            plt.close()
+            
+            # Correct actions
+            plt.figure()
+            plt.plot(np.arange(t_max), TS_actions_correct, 'k', label=bandits_labels[TS_id])
+            plt.plot(np.arange(t_max), bandit_log10invPFA_tGaussian_actions_correct, 'b', label=bandits_labels[bandit_log10invPFA_tGaussian_id])
+            plt.plot(np.arange(t_max), bandit_loginvPFA_Markov_actions_correct, 'g', label=bandits_labels[bandit_loginvPFA_Markov_id])
+            plt.plot(np.arange(t_max), bandit_loginvPFA_Chebyshev_actions_correct, 'r', label=bandits_labels[bandit_loginvPFA_Chebyshev_id])
+            plt.xlabel('t')
+            plt.ylabel(r'$P(a=a^*)$')
+            plt.title('Correct action played over time')
+            plt.axis([0, t_max-1,0,1])
+            legend = plt.legend(bbox_to_anchor=(1.05,1.05), loc='upper left', ncol=1, shadow=True)
+            plt.savefig(save_dir+'/theta={}/correct_actions.pdf'.format(theta[:,0]), format='pdf', bbox_inches='tight')
+            plt.close()
         
         # Difference
         log10invPFA_tGaussian_diff=np.append(log10invPFA_tGaussian_diff, bandit_log10invPFA_tGaussian_diff[diff_id])
@@ -187,6 +229,7 @@ if __name__ == '__main__':
     parser.add_argument('-K', type=int, default=2, help='Number of arms of the bandit')
     parser.add_argument('-t_max', type=int, default=10, help='Time-instants to run the bandit')
     parser.add_argument('-R', type=int, default=1, help='Number of realizations to run')
+    parser.add_argument('-exec_type', type=str, default='online', help='Type of execution to run: online or all')
     parser.add_argument('-M', type=int, default=0, help='Number of MC samples used')
     parser.add_argument('-theta_min', type=float, default=0, help='Minimum theta')
     parser.add_argument('-theta_max', type=float, default=1, help='Maximum theta')
@@ -196,4 +239,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     # Call main function
-    main(args.K, args.t_max, args.R, args.M, args.theta_min, args.theta_max, args.theta_diff)
+    main(args.K, args.t_max, args.R, args.exec_type, args.M, args.theta_min, args.theta_max, args.theta_diff)

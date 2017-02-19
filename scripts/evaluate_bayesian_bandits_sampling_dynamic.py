@@ -16,7 +16,7 @@ from BayesianBanditsSampling import *
 from plot_bandits import *
 
 # Main code
-def main(M, K, t_max, R, theta):
+def main(M, K, t_max, R, exec_type, theta):
     print('Bayesian {}-armed bayesian bandit with {} samples for {} time-instants and {} realizations'.format(K, M, t_max, R))
 
     # Directory configuration
@@ -114,7 +114,7 @@ def main(M, K, t_max, R, theta):
     
     # Execute each bandit
     for (n,bandit) in enumerate(bandits):
-        bandit.execute_realizations(R, t_max)
+        bandit.execute_realizations(R, t_max, exec_type)
     
     ############################### PLOTTING  ############################### 
     # Plotting overall
@@ -171,6 +171,7 @@ if __name__ == '__main__':
     parser.add_argument('-K', type=int, default=2, help='Number of arms of the bandit')
     parser.add_argument('-t_max', type=int, default=10, help='Time-instants to run the bandit')
     parser.add_argument('-R', type=int, default=1, help='Number of realizations to run')
+    parser.add_argument('-exec_type', type=str, default='online', help='Type of execution to run: online or all')
     parser.add_argument('-theta', nargs='+', type=float, default=0, help='Theta')
 
     # Get arguments
@@ -179,4 +180,4 @@ if __name__ == '__main__':
     # Make sure K and theta size match
     assert len(args.theta)==args.K, 'Size of theta={} does not match number of arms K={}'.format(args.theta, args.K)
     # Call main function
-    main(args.M, args.K, args.t_max, args.R, args.theta)
+    main(args.M, args.K, args.t_max, args.R, args.exec_type, args.theta)

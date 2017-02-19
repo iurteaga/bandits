@@ -252,28 +252,59 @@ class BayesianBanditSampling(abc.ABC,Bandit):
             self.update_reward_posterior(t)
             
             
-    def execute_realizations(self, R, t_max):
+    def execute_realizations(self, R, t_max, exec_type='online'):
         """ Execute the bandit for R realizations """
 
         # Allocate overall variables
-        self.returns_R={'mean':np.zeros((1,t_max)), 'm2':np.zeros((1,t_max)), 'var':np.zeros((1,t_max))}
-        self.returns_expected_R={'mean':np.zeros((self.K,t_max)), 'm2':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
-        self.actions_R={'mean':np.zeros((self.K,t_max)), 'm2':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
-        self.actions_predictive_density_R={'mean':np.zeros((self.K,t_max)), 'm2':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
-        self.n_samples_R={'mean':np.zeros(t_max), 'm2':np.zeros(t_max), 'var':np.zeros(t_max)}
-
+        if exec_type == 'online':
+            self.returns_R={'mean':np.zeros((1,t_max)), 'm2':np.zeros((1,t_max)), 'var':np.zeros((1,t_max))}
+            self.returns_expected_R={'mean':np.zeros((self.K,t_max)), 'm2':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
+            self.actions_R={'mean':np.zeros((self.K,t_max)), 'm2':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
+            self.actions_predictive_density_R={'mean':np.zeros((self.K,t_max)), 'm2':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
+            self.n_samples_R={'mean':np.zeros(t_max), 'm2':np.zeros(t_max), 'var':np.zeros(t_max)}
+        elif exec_type =='general':
+            self.returns_R={'all':np.zeros((R,1,t_max)), 'mean':np.zeros((1,t_max)), 'var':np.zeros((1,t_max))}
+            self.returns_expected_R={'all':np.zeros((R,self.K,t_max)), 'mean':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
+            self.actions_R={'all':np.zeros((R,self.K,t_max)), 'mean':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
+            self.actions_predictive_density_R={'all':np.zeros((R,self.K,t_max)), 'mean':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
+            self.actions_predictive_density_var_R={'all':np.zeros((R,self.K,t_max)), 'mean':np.zeros((self.K,t_max)), 'var':np.zeros((self.K,t_max))}
+            self.n_samples_R={'all':np.zeros((R,t_max)),'mean':np.zeros(t_max), 'var':np.zeros(t_max)}            
+        else:
+            raise ValueError('Execution type={} not implemented'.format(exec_type))
+            
         # Execute all
-        for r in np.arange(1,R+1):
+        for r in np.arange(R):
             # Run one realization
             #print('Executing realization {}'.format(r))
             self.execute(t_max)
 
-            # Update overall mean and variance sequentially
-            self.returns_R['mean'], self.returns_R['m2'], self.returns_R['var']=online_update_mean_var(r, self.returns.sum(axis=0), self.returns_R['mean'], self.returns_R['m2'])
-            self.returns_expected_R['mean'], self.returns_expected_R['m2'], self.returns_expected_R['var']=online_update_mean_var(r, self.returns_expected, self.returns_expected_R['mean'], self.returns_expected_R['m2'])
-            self.actions_R['mean'], self.actions_R['m2'], self.actions_R['var']=online_update_mean_var(r, self.actions, self.actions_R['mean'], self.actions_R['m2'])
-            self.actions_predictive_density_R['mean'], self.actions_predictive_density_R['m2'], self.actions_predictive_density_R['var']=online_update_mean_var(r, self.actions_predictive_density['mean'], self.actions_predictive_density_R['mean'], self.actions_predictive_density_R['m2'])
-            self.n_samples_R['mean'], self.n_samples_R['m2'], self.n_samples_R['var']=online_update_mean_var(r, self.n_samples, self.n_samples_R['mean'], self.n_samples_R['m2'])
+            if exec_type == 'online':
+                # Update overall mean and variance sequentially
+                self.returns_R['mean'], self.returns_R['m2'], self.returns_R['var']=online_update_mean_var(r+1, self.returns.sum(axis=0), self.returns_R['mean'], self.returns_R['m2'])
+                self.returns_expected_R['mean'], self.returns_expected_R['m2'], self.returns_expected_R['var']=online_update_mean_var(r+1, self.returns_expected, self.returns_expected_R['mean'], self.returns_expected_R['m2'])
+                self.actions_R['mean'], self.actions_R['m2'], self.actions_R['var']=online_update_mean_var(r+1, self.actions, self.actions_R['mean'], self.actions_R['m2'])
+                self.actions_predictive_density_R['mean'], self.actions_predictive_density_R['m2'], self.actions_predictive_density_R['var']=online_update_mean_var(r+1, self.actions_predictive_density['mean'], self.actions_predictive_density_R['mean'], self.actions_predictive_density_R['m2'])
+                self.n_samples_R['mean'], self.n_samples_R['m2'], self.n_samples_R['var']=online_update_mean_var(r+1, self.n_samples, self.n_samples_R['mean'], self.n_samples_R['m2'])
+            else:
+                self.returns_R['all'][r,0,:]=self.returns.sum(axis=0)
+                self.returns_expected_R['all'][r,:,:]=self.returns_expected
+                self.actions_R['all'][r,:,:]=self.actions
+                self.actions_predictive_density_R['all'][r,:,:]=self.actions_predictive_density['mean']
+                self.actions_predictive_density_var_R['all'][r,:,:]=self.actions_predictive_density['var']
+                self.n_samples_R['all'][r,:]=self.n_samples
+                
+        if exec_type == 'general':
+            # Compute sufficient statistics
+            self.returns_R['mean']=self.returns_R['all'].mean(axis=0)
+            self.returns_R['var']=self.returns_R['all'].var(axis=0)
+            self.returns_expected_R['mean']=self.returns_expected_R['all'].mean(axis=0)
+            self.returns_expected_R['var']=self.returns_expected_R['all'].var(axis=0)
+            self.actions_R['mean']=self.actions_R['all'].mean(axis=0)
+            self.actions_R['var']=self.actions_R['all'].var(axis=0)
+            self.actions_predictive_density_R['mean']=self.actions_predictive_density_R['all'].mean(axis=0)
+            self.actions_predictive_density_R['var']=self.actions_predictive_density_R['all'].var(axis=0)
+            self.n_samples_R['mean']=self.n_samples_R['all'].mean(axis=0)
+            self.n_samples_R['var']=self.n_samples_R['all'].var(axis=0)
 
 class BayesianBanditSamplingMonteCarlo(BayesianBanditSampling):
     """Class for Bayesian Bandits with action sampling that compute the actions predictive density via Monte Carlo sampling
