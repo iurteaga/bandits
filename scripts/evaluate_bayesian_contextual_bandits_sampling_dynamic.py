@@ -16,11 +16,11 @@ from BayesianContextualBanditsSampling import *
 from plot_bandits import *
 
 # Main code
-def main(M, K, t_max, R):
-    print('Bayesian {}-armed contextual bandit with {} samples for {} time-instants and {} realizations'.format(K, M, t_max, R))
+def main(M, A, t_max, R):
+    print('Bayesian {}-armed contextual bandit with {} samples for {} time-instants and {} realizations'.format(A, M, t_max, R))
 
     # Directory configuration
-    dir_string='../results/{}/K={}/t_max={}/R={}/M={}'.format(os.path.basename(__file__).split('.')[0], K, t_max, R, M)
+    dir_string='../results/{}/A={}/t_max={}/R={}/M={}'.format(os.path.basename(__file__).split('.')[0], A, t_max, R, M)
     os.makedirs(dir_string, exist_ok=True)
     
     # Contextual Bandit configuration
@@ -30,7 +30,7 @@ def main(M, K, t_max, R):
     context=np.ones((d_context, 1))
     
     # Theta
-    theta=np.ones((K,d_context))
+    theta=np.ones((A,d_context))
     theta[0]=-1
     # Mean is linear combination
     returns_expected=np.dot(theta, context)
@@ -41,17 +41,17 @@ def main(M, K, t_max, R):
     reward_function={'type':'linear_gaussian', 'dist':stats.norm, 'args':(), 'kwargs':{'loc':returns_expected,'scale':returns_sigma}}
        
     # Reward prior
-    Sigmas=np.zeros((K, d_context, d_context))
-    for k in np.arange(K):
+    Sigmas=np.zeros((A, d_context, d_context))
+    for k in np.arange(A):
         Sigmas[k,:,:]=np.eye(d_context)
 
-    reward_prior={'dist': 'NIG', 'alpha': np.ones((K,1)), 'beta': np.ones((K,1)), 'theta': np.ones((K,d_context)), 'Sigma':Sigmas}
+    reward_prior={'dist': 'NIG', 'alpha': np.ones((A,1)), 'beta': np.ones((A,1)), 'theta': np.ones((A,d_context)), 'Sigma':Sigmas}
     
     # Bandits to evaluate as a list
   
     # Thompson sampling bandit
     sampling={'type':'static', 'n_samples':1}
-    ts_bandit=BayesianContextualBanditSamplingMonteCarlo(K, reward_function, reward_prior, sampling, 1)
+    ts_bandit=BayesianContextualBanditSamplingMonteCarlo(A, reward_function, reward_prior, sampling, 1)
     bandits=[ts_bandit]
     bandits_labels=['TS']
            
@@ -60,55 +60,55 @@ def main(M, K, t_max, R):
     
     # Bayesian sampling bandit
     sampling={'type':'static', 'n_samples':1}
-    bandits.append(BayesianContextualBanditSamplingMonteCarlo(K, reward_function, reward_prior, sampling, M_samples[0]))
+    bandits.append(BayesianContextualBanditSamplingMonteCarlo(A, reward_function, reward_prior, sampling, M_samples[0]))
     bandits_labels.append('TS M={}'.format(M_samples[0]))
 
     # Monte Carlo sampling, n invPFA_tGaussian
     for M in M_samples:
         sampling={'type':'invPFA_tGaussian', 'n_max':100}
-        bandits.append(BayesianContextualBanditSamplingMonteCarlo(K, reward_function, reward_prior, sampling, M))
+        bandits.append(BayesianContextualBanditSamplingMonteCarlo(A, reward_function, reward_prior, sampling, M))
         bandits_labels.append('MC n=(1/Pfa) tGaussian, M={}'.format(M))    
     # Monte Carlo sampling, n loginvPFA_tGaussian
     for M in M_samples:
         sampling={'type':'loginvPFA_tGaussian', 'n_max':100}
-        bandits.append(BayesianContextualBanditSamplingMonteCarlo(K, reward_function, reward_prior, sampling, M))
+        bandits.append(BayesianContextualBanditSamplingMonteCarlo(A, reward_function, reward_prior, sampling, M))
         bandits_labels.append('MC n=ln(1/Pfa) tGaussian, M={}'.format(M))
     # Monte Carlo sampling, n log10invPFA_tGaussian
     for M in M_samples:
         sampling={'type':'log10invPFA_tGaussian', 'n_max':100}
-        bandits.append(BayesianContextualBanditSamplingMonteCarlo(K, reward_function, reward_prior, sampling, M))
+        bandits.append(BayesianContextualBanditSamplingMonteCarlo(A, reward_function, reward_prior, sampling, M))
         bandits_labels.append('MC n=log10(1/Pfa) tGaussian, M={}'.format(M))
 
     # Monte Carlo sampling, n invPFA_Markov
     for M in M_samples:
         sampling={'type':'invPFA_Markov', 'n_max':100}
-        bandits.append(BayesianContextualBanditSamplingMonteCarlo(K, reward_function, reward_prior, sampling, M))
+        bandits.append(BayesianContextualBanditSamplingMonteCarlo(A, reward_function, reward_prior, sampling, M))
         bandits_labels.append('MC n=(1/Pfa) Markov, M={}'.format(M))
     # Monte Carlo sampling, n loginvPFA_Markov
     for M in M_samples:
         sampling={'type':'loginvPFA_Markov', 'n_max':100}
-        bandits.append(BayesianContextualBanditSamplingMonteCarlo(K, reward_function, reward_prior, sampling, M))
+        bandits.append(BayesianContextualBanditSamplingMonteCarlo(A, reward_function, reward_prior, sampling, M))
         bandits_labels.append('MC n=ln(1/Pfa) Markov, M={}'.format(M))
     # Monte Carlo sampling, n log10invPFA_Markov
     for M in M_samples:
         sampling={'type':'log10invPFA_Markov', 'n_max':100}
-        bandits.append(BayesianContextualBanditSamplingMonteCarlo(K, reward_function, reward_prior, sampling, M))
+        bandits.append(BayesianContextualBanditSamplingMonteCarlo(A, reward_function, reward_prior, sampling, M))
         bandits_labels.append('MC n=log10(1/Pfa) Markov, M={}'.format(M))
 
     # Monte Carlo sampling, n invPFA_Chebyshev
     for M in M_samples:
         sampling={'type':'invPFA_Chebyshev', 'n_max':100}
-        bandits.append(BayesianContextualBanditSamplingMonteCarlo(K, reward_function, reward_prior, sampling, M))
+        bandits.append(BayesianContextualBanditSamplingMonteCarlo(A, reward_function, reward_prior, sampling, M))
         bandits_labels.append('MC n=(1/Pfa) Chebyshev, M={}'.format(M))        
     # Monte Carlo sampling, n loginvPFA_Chebyshev
     for M in M_samples:
         sampling={'type':'loginvPFA_Chebyshev', 'n_max':100}
-        bandits.append(BayesianContextualBanditSamplingMonteCarlo(K, reward_function, reward_prior, sampling, M))
+        bandits.append(BayesianContextualBanditSamplingMonteCarlo(A, reward_function, reward_prior, sampling, M))
         bandits_labels.append('MC n=ln(1/Pfa) Chebyshev, M={}'.format(M))
     # Monte Carlo sampling, n log10invPFA_Chebyshev
     for M in M_samples:
         sampling={'type':'log10invPFA_Chebyshev', 'n_max':100}
-        bandits.append(BayesianContextualBanditSamplingMonteCarlo(K, reward_function, reward_prior, sampling, M))
+        bandits.append(BayesianContextualBanditSamplingMonteCarlo(A, reward_function, reward_prior, sampling, M))
         bandits_labels.append('MC n=log10(1/Pfa) Chebyshev, M={}'.format(M))
                 
     # Bandits colors
@@ -172,7 +172,7 @@ if __name__ == '__main__':
     # Input parser
     parser = argparse.ArgumentParser(description='Evaluate Bayesian contextual bandits.')
     parser.add_argument('-M', type=int, default=1000, help='Number of samples for the MC integration')
-    parser.add_argument('-K', type=int, default=2, help='Number of arms of the bandit')
+    parser.add_argument('-A', type=int, default=2, help='Number of arms of the bandit')
     parser.add_argument('-t_max', type=int, default=10, help='Time-instants to run the bandit')
     parser.add_argument('-R', type=int, default=1, help='Number of realizations to run')
 
@@ -180,4 +180,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     # Call main function
-    main(args.M, args.K, args.t_max, args.R)
+    main(args.M, args.A, args.t_max, args.R)

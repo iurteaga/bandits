@@ -6,6 +6,7 @@ import scipy.stats as stats
 from collections import defaultdict
 import abc
 import sys
+import copy
 from Bandits import * 
 
 import pdb
@@ -47,7 +48,7 @@ class BayesianContextualBanditSampling(abc.ABC,Bandit):
         self.reward_prior=reward_prior
                 
         # Initialize reward posterior (dictonary)
-        self.reward_posterior=reward_prior
+        self.reward_posterior=copy.deepcopy(reward_prior)
         '''
         # TODO: The following dictionary list structure would be useful for keeping track over time of the posterior (growing with append)
         self.reward_posterior=defaultdict(list)

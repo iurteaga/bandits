@@ -15,11 +15,11 @@ from BayesianBanditsSampling import *
 from plot_bandits import *
 
 # Main code
-def main(K, t_max, R, exec_type, M, theta_min, theta_max, theta_diff):
-    print('Ploting for bayesian {}-armed bayesian bandit with for {} time-instants and {} realizations'.format(K, t_max, R))
+def main(A, t_max, R, exec_type, M, theta_min, theta_max, theta_diff):
+    print('Ploting for bayesian {}-armed bayesian bandit with for {} time-instants and {} realizations'.format(A, t_max, R))
 
     # Save dir
-    save_dir='./plots/K={}/t_max={}/R={}/M={}'.format(K,t_max,R,M)
+    save_dir='./plots/A={}/t_max={}/R={}/M={}'.format(A,t_max,R,M)
     os.makedirs(save_dir, exist_ok=True)
 
     # Variables
@@ -42,10 +42,10 @@ def main(K, t_max, R, exec_type, M, theta_min, theta_max, theta_diff):
     diff_id=500
     diff_id=1499
         
-    # for theta in combinations_with_replacement(np.arange(0.1,1.0,theta_diff),K):
-    for theta in combinations(np.arange(theta_min,theta_max,theta_diff),K):
+    # for theta in combinations_with_replacement(np.arange(0.1,1.0,theta_diff),A):
+    for theta in combinations(np.arange(theta_min,theta_max,theta_diff),A):
         # For each theta (in string format)
-        theta=np.array(theta).reshape(K,1)
+        theta=np.array(theta).reshape(A,1)
         theta_diff=np.diff(theta.T).T
         kl_div_per_arm=theta[:-1]*np.log(theta[:-1]/theta[-1])+(1-theta[:-1])*np.log((1-theta[:-1])/(1-theta[-1]))
         kl_div=np.append(kl_div, kl_div_per_arm.sum())
@@ -54,7 +54,7 @@ def main(K, t_max, R, exec_type, M, theta_min, theta_max, theta_diff):
         
         # Directory configuration
         run_script='evaluate_bayesian_bandits_sampling_dynamic'
-        dir_string='../results/{}/K={}/t_max={}/R={}/M={}/theta={}'.format(run_script, K, t_max, R, M, np.array_str(theta[:,0]))
+        dir_string='../results/{}/A={}/t_max={}/R={}/M={}/theta={}'.format(run_script, A, t_max, R, M, np.array_str(theta[:,0]))
 
         print('theta={}, Dl={}, LR={}'.format(np.array_str(theta[:,0]), kl_div[-1], lai_robbins[-1]))
         
@@ -226,7 +226,7 @@ def main(K, t_max, R, exec_type, M, theta_min, theta_max, theta_diff):
 if __name__ == '__main__':
     # Input parser
     parser = argparse.ArgumentParser(description='Evaluation plots for executed Bayesian bandits.')
-    parser.add_argument('-K', type=int, default=2, help='Number of arms of the bandit')
+    parser.add_argument('-A', type=int, default=2, help='Number of arms of the bandit')
     parser.add_argument('-t_max', type=int, default=10, help='Time-instants to run the bandit')
     parser.add_argument('-R', type=int, default=1, help='Number of realizations to run')
     parser.add_argument('-exec_type', type=str, default='online', help='Type of execution to run: online or all')
@@ -239,4 +239,4 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     # Call main function
-    main(args.K, args.t_max, args.R, args.exec_type, args.M, args.theta_min, args.theta_max, args.theta_diff)
+    main(args.A, args.t_max, args.R, args.exec_type, args.M, args.theta_min, args.theta_max, args.theta_diff)

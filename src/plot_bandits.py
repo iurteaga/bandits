@@ -19,14 +19,14 @@ def bandits_plot_returns(returns_expected, bandits, colors, labels, t_plot, plot
     """ Plot returns for a set of bandits
         
         Args:
-            returns_expected: true expected returns
+            returns_expected: true expected returns array (arms by times)
             bandits: bandit list
         Rets:
     """
        
     # Returns over time
     plt.figure()
-    plt.plot(np.arange(t_plot), returns_expected.max()*np.ones(t_plot), 'k', label='Expected')
+    plt.plot(np.arange(t_plot), returns_expected.max(axis=0), 'k', label='Expected')
     for (n,bandit) in enumerate(bandits):
         plt.plot(np.arange(t_plot), bandit.returns_R['mean'][0,0:t_plot], colors[n], label=labels[n])
         if plot_std:
@@ -44,7 +44,7 @@ def bandits_plot_returns(returns_expected, bandits, colors, labels, t_plot, plot
 
     # Cumulative returns over time
     plt.figure()
-    plt.plot(np.arange(t_plot), returns_expected.max()*np.arange(t_plot), 'k', label='Expected')
+    plt.plot(np.arange(t_plot), returns_expected.max(axis=0), 'k', label='Expected')
     for (n,bandit) in enumerate(bandits):
         plt.plot(np.arange(t_plot),bandit.returns_R['mean'][0,0:t_plot].cumsum(axis=1), colors[n], label=labels[n])
     plt.xlabel('t')
@@ -71,9 +71,9 @@ def bandits_plot_returns_expected(returns_expected, bandits, colors, labels, t_p
     # Expected returns per arm, over time
     for a in np.arange(0,bandits[0].A):
         plt.figure()
-        plt.plot(np.arange(t_plot), returns_expected[a]*np.ones(t_plot), 'k', label='Expected')
+        plt.plot(np.arange(t_plot), returns_expected[a,:], 'k', label='Expected')
         for (n,bandit) in enumerate(bandits):
-            plt.plot(np.arange(t_plot), bandit.returns_expected_R['mean'][a,0:t_plot], colors[n], label=labels[n]+' actions')
+            plt.plot(np.arange(t_plot), bandit.returns_expected_R['mean'][a,0:t_plot], colors[n], label=labels[n])
             if plot_std:
                 plt.fill_between(np.arange(t_plot), bandit.returns_expected_R['mean'][a,0:t_plot]-np.sqrt(bandit.returns_expected_R['var'][a,0:t_plot]), bandit.returns_expected_R['mean'][a,0:t_plot]+np.sqrt(bandit.returns_expected_R['var'][a,0:t_plot]),alpha=0.5, facecolor=colors[n])
         plt.ylabel(r'$E\{\mu_{a,t}\}$')
@@ -100,9 +100,9 @@ def bandits_plot_regret(returns_expected, bandits, colors, labels, t_plot, plot_
     # Regret over time
     plt.figure()
     for (n,bandit) in enumerate(bandits):
-        plt.plot(np.arange(t_plot), returns_expected.max()-bandit.returns_R['mean'][0,0:t_plot], colors[n], label=labels[n])
+        plt.plot(np.arange(t_plot), returns_expected.max(axis=0)-bandit.returns_R['mean'][0,0:t_plot], colors[n], label=labels[n])
         if plot_std:
-            plt.fill_between(np.arange(t_plot), (returns_expected.max()-bandit.returns_R['mean'][0,0:t_plot])-np.sqrt(bandit.returns_R['var'][0,0:t_plot]), (returns_expected.max()-bandit.returns_R['mean'][0,0:t_plot])+np.sqrt(bandit.returns_R['var'][0,0:t_plot]),alpha=0.5, facecolor=colors[n])
+            plt.fill_between(np.arange(t_plot), (returns_expected.max(axis=0)-bandit.returns_R['mean'][0,0:t_plot])-np.sqrt(bandit.returns_R['var'][0,0:t_plot]), (returns_expected.max(axis=0)-bandit.returns_R['mean'][0,0:t_plot])+np.sqrt(bandit.returns_R['var'][0,0:t_plot]),alpha=0.5, facecolor=colors[n])
     plt.xlabel('t')
     plt.ylabel(r'$l_t=y_t^*-y_t$')
     plt.title('Regret over time')
@@ -117,9 +117,9 @@ def bandits_plot_regret(returns_expected, bandits, colors, labels, t_plot, plot_
     # Cumulative regret over time
     plt.figure()
     for (n,bandit) in enumerate(bandits):
-        plt.plot(np.arange(t_plot), (returns_expected.max()-bandit.returns_R['mean'][0,0:t_plot]).cumsum(), colors[n], label=labels[n])
+        plt.plot(np.arange(t_plot), (returns_expected.max(axis=0)-bandit.returns_R['mean'][0,0:t_plot]).cumsum(), colors[n], label=labels[n])
         if plot_std:
-            plt.fill_between(np.arange(t_plot), (returns_expected.max()-bandit.returns_R['mean'][0,0:t_plot]).cumsum()-np.sqrt(bandit.returns_R['var'][0,0:t_plot]), (returns_expected.max()-bandit.returns_R['mean'][0,0:t_plot]).cumsum()+np.sqrt(bandit.returns_R['var'][0,0:t_plot]),alpha=0.5, facecolor=colors[n])
+            plt.fill_between(np.arange(t_plot), (returns_expected.max(axis=0)-bandit.returns_R['mean'][0,0:t_plot]).cumsum()-np.sqrt(bandit.returns_R['var'][0,0:t_plot]), (returns_expected.max(axis=0)-bandit.returns_R['mean'][0,0:t_plot]).cumsum()+np.sqrt(bandit.returns_R['var'][0,0:t_plot]),alpha=0.5, facecolor=colors[n])
     plt.xlabel('t')
     plt.ylabel(r'$L_t=\sum_{t=0}^T y_t^*-y_t$')
     plt.title('Cumulative regret over time')
@@ -221,9 +221,9 @@ def bandits_plot_actions_correct(returns_expected,bandits, colors, labels, t_plo
 	# Correct arm selection probability
     plt.figure()
     for (n,bandit) in enumerate(bandits):
-        plt.plot(np.arange(t_plot), bandit.actions_R['mean'][returns_expected.argmax(),0:t_plot], colors[n], label=labels[n])
+        plt.plot(np.arange(t_plot), bandit.actions_R['mean'][returns_expected.argmax(axis=0),np.arange(t_plot)], colors[n], label=labels[n])
         if plot_std:
-            plt.fill_between(np.arange(t_plot), bandit.actions_R['mean'][returns_expected.argmax(),0:t_plot]-np.sqrt(bandit.actions_R['var'][returns_expected.argmax(),0:t_plot]), bandit.actions_R['mean'][returns_expected.argmax(),0:t_plot]+np.sqrt(bandit.actions_R['var'][returns_expected.argmax(),0:t_plot]),alpha=0.5, facecolor=colors[n])
+            plt.fill_between(np.arange(t_plot), bandit.actions_R['mean'][returns_expected.argmax(axis=0),np.arange(t_plot)]-np.sqrt(bandit.actions_R['var'][returns_expected.argmax(axis=0),np.arange(t_plot)]), bandit.actions_R['mean'][returns_expected.argmax(axis=0),np.arange(t_plot)]+np.sqrt(bandit.actions_R['var'][returns_expected.argmax(axis=0),np.arange(t_plot)]),alpha=0.5, facecolor=colors[n])
     plt.ylabel(r'$f(a_{t+1}=a^*|a_{1:t}, y_{1:t})$')
     plt.xlabel('t')
     plt.title('Averaged Correct Action probabilities')
