@@ -3,6 +3,7 @@
 # Imports
 import numpy as np
 import scipy.stats as stats
+import pickle
 import sys, os
 import argparse
 from itertools import *
@@ -15,11 +16,13 @@ from BayesianBanditsSampling import *
 from plot_bandits import *
 
 # Main code
-def main(A, t_max, R, theta):
-    print('Bayesian {}-armed bayesian bandit for {} time-instants and {} realizations'.format(A, t_max, R))
+def main(A, t_max, M, R, exec_type, theta):
+
+    ############################### MAIN CONFIG  ############################### 
+    print('Bayesian {}-armed bandit with TS policy and {} MC samples for {} time-instants and {} realizations'.format(A, M, t_max, R))
 
     # Directory configuration
-    dir_string='../results/{}/A={}/t_max={}/R={}'.format(os.path.basename(__file__).split('.')[0], A, t_max, R)
+    dir_string='../results/{}/A={}/t_max={}/R={}/M={}'.format(os.path.basename(__file__).split('.')[0], A, t_max, R, M)
     os.makedirs(dir_string, exist_ok=True)
     
     # Bandit configuration
@@ -32,28 +35,48 @@ def main(A, t_max, R, theta):
     returns_expected=theta
     reward_prior={'dist': stats.beta, 'alpha': np.ones((A,1)), 'beta': np.ones((A,1))}
     
+    ############################### BANDITS  ############################### 
     # Bandits to evaluate as a list
     bandits=[]
     bandits_labels=[]
     
-    # Monte Carlo Bayesian Bandits Sampling
+    ### Thompson sampling: when static n=1
+    thompsonSampling={'type':'static', 'n_samples':1}
+
+    ### Monte Carlo Bayesian Bandits Sampling
     M_samples=np.array([1, 1000])
+    
+    # MC of returns
     for M in M_samples:
-        # Monte Carlo sampling, n=1
-        sampling={'type':'static', 'n_samples':1}
-        bandits.append(BayesianBanditSamplingMonteCarlo(A, reward_function, reward_prior, sampling, M))
-        bandits_labels.append('MC n=1,M={}'.format(M))
-            
-    # Bandits colors
-    bandits_colors=['black', 'red', 'cyan', 'blue', 'lime', 'green', 'orange', 'fuchsia', 'purple']
-    bandits_colors=[colors.cnames['black'], colors.cnames['red'], colors.cnames['cyan'], colors.cnames['blue'], colors.cnames['lime'], colors.cnames['green'], colors.cnames['orange'], colors.cnames['fuchsia'], colors.cnames['purple']]
-          
+        # TS sampling, MC of returns
+        bandits.append(BayesianBanditSampling_returnMonteCarlo(A, reward_function, reward_prior, thompsonSampling, M))
+        bandits_labels.append('TS, returnMC with M={}'.format(M))
+
+    # MC of expected returns
+    for M in M_samples:
+        # TS sampling, MC of expected returns
+        bandits.append(BayesianBanditSampling_expectedReturnMonteCarlo(A, reward_function, reward_prior, thompsonSampling, M))
+        bandits_labels.append('TS, expectedReturnMC with M={}'.format(M))
+
+    # MC of actions
+    for M in M_samples:
+        # TS sampling, MC of actions
+        bandits.append(BayesianBanditSampling_actionMonteCarlo(A, reward_function, reward_prior, thompsonSampling, M))
+        bandits_labels.append('TS, actionMC with M={}'.format(M))
+                   
+    ### BANDIT EXECUTION
     # Execute each bandit
     for (n,bandit) in enumerate(bandits):
-        bandit.execute_realizations(R, t_max)
+        bandit.execute_realizations(R, t_max, exec_type)
     
     ############################### PLOTTING  ############################### 
-    # Plotting overall
+    ## Plotting arrangements (in general)
+    bandits_colors=[colors.cnames['black'], colors.cnames['skyblue'], colors.cnames['cyan'], colors.cnames['blue'], colors.cnames['palegreen'], colors.cnames['lime'], colors.cnames['green'], colors.cnames['yellow'], colors.cnames['orange'], colors.cnames['red'], colors.cnames['purple'], colors.cnames['fuchsia'], colors.cnames['pink']]
+
+    # For these bandits
+    bandits_colors=[colors.cnames['blue'], colors.cnames['cyan'], colors.cnames['green'], colors.cnames['lime'], colors.cnames['red'], colors.cnames['orange']]
+    
+    # Plotting direcotries
     dir_plots=dir_string+'/theta={}'.format(theta[:,0])+'/plots'
     os.makedirs(dir_plots, exist_ok=True)
 
@@ -65,7 +88,7 @@ def main(A, t_max, R, theta):
     bandits_plot_regret(returns_expected*np.ones(t_plot), bandits, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
     plot_std=True
     bandits_plot_regret(returns_expected*np.ones(t_plot), bandits, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
-        
+    
     # Plot returns expected
     plot_std=True
     bandits_plot_returns_expected(returns_expected*np.ones(t_plot), bandits, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
@@ -75,6 +98,8 @@ def main(A, t_max, R, theta):
     bandits_plot_action_density(bandits, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
     
     # Plot actions
+    plot_std=False
+    bandits_plot_actions(bandits, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
     plot_std=True
     bandits_plot_actions(bandits, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
 
@@ -85,14 +110,21 @@ def main(A, t_max, R, theta):
     bandits_plot_actions_correct(returns_expected*np.ones(t_plot), bandits, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
     ###############          
 
+    # Save bandits info
+    with open(dir_string+'/theta={}'.format(theta[:,0])+'/bandits.pickle', 'wb') as f:
+        pickle.dump(bandits, f)
+    with open(dir_string+'/theta={}'.format(theta[:,0])+'/bandits_labels.pickle', 'wb') as f:
+        pickle.dump(bandits_labels, f)
             
 # Making sure the main program is not executed when the module is imported
 if __name__ == '__main__':
     # Input parser
-    parser = argparse.ArgumentParser(description='Evaluate Bayesian bandits.')
+    parser = argparse.ArgumentParser(description='Evaluate Bayesian Bandits with TS policy and all MC approaches.')
     parser.add_argument('-A', type=int, default=2, help='Number of arms of the bandit')
     parser.add_argument('-t_max', type=int, default=10, help='Time-instants to run the bandit')
+    parser.add_argument('-M', type=int, default=1000, help='Number of samples for the MC integration')
     parser.add_argument('-R', type=int, default=1, help='Number of realizations to run')
+    parser.add_argument('-exec_type', type=str, default='online', help='Type of execution to run: online or all')
     parser.add_argument('-theta', nargs='+', type=float, default=0, help='Theta')
 
     # Get arguments
@@ -101,4 +133,4 @@ if __name__ == '__main__':
     # Make sure A and theta size match
     assert len(args.theta)==args.A, 'Size of theta={} does not match number of arms A={}'.format(args.theta, args.A)
     # Call main function
-    main(args.A, args.t_max, args.R, args.theta)
+    main(args.A, args.t_max, args.M, args.R, args.exec_type, args.theta)
