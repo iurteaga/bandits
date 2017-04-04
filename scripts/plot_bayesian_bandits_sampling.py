@@ -51,7 +51,6 @@ def main(A, t_max, R, exec_type, M, theta_min, theta_max, theta_diff):
         kl_div=np.append(kl_div, kl_div_per_arm.sum())
         lai_robbins=np.append(lai_robbins, (theta_diff/kl_div_per_arm).sum())
 
-        
         # Directory configuration
         run_script='evaluate_bayesian_bandits_sampling_dynamic'
         dir_string='../results/{}/A={}/t_max={}/R={}/M={}/theta={}'.format(run_script, A, t_max, R, M, np.array_str(theta[:,0]))

@@ -12,11 +12,11 @@ import pdb
 # To control numpy errors
 #np.seterr(all='raise')
 
-# Class definitions
+# Abstract class definitions
 class BayesianBanditSampling(abc.ABC,Bandit):
     """Class (Abstract) for Bayesian Bandits with action sampling
     
-    These type of bandits pick an action by sampling the next action based on the probability of the action having the highest expected return
+    These type of bandits pick an action by sampling the next action
         They update the predictive density of each action based on previous rewards and actions via Bayes update rule
         They draw the next action by (dynamically) SAMPLING from the latest predictive action density, then picking most likely option
             the number of samples balances exploration/exploitation
@@ -306,10 +306,16 @@ class BayesianBanditSampling(abc.ABC,Bandit):
             self.n_samples_R['mean']=self.n_samples_R['all'].mean(axis=0)
             self.n_samples_R['var']=self.n_samples_R['all'].var(axis=0)
 
-class BayesianBanditSamplingMonteCarlo(BayesianBanditSampling):
-    """Class for Bayesian Bandits with action sampling that compute the actions predictive density via Monte Carlo sampling
+
+# Class definitions 
+class BayesianBanditSampling_returnMonteCarlo(BayesianBanditSampling):
+    """Class for Bayesian Bandits Sampling with Monte Carlo over returns
     
-        These class updates the predictive density of each action using Monte Carlo sampling, based on previous rewards and actions
+        This class updates the predictive action density of each action using Monte Carlo sampling, based on previous rewards and actions        
+        - Draw parameters from the posterior
+        - Draw returns, for each parameter sample
+        - Decide, for each drawn return sample, which action is the best
+        - Compute the action predictive density, as a Monte Carlo by averaging best action samples
 
     Attributes (besides inherited):
         M: number of samples to use in the Monte Carlo integration
@@ -322,6 +328,7 @@ class BayesianBanditSamplingMonteCarlo(BayesianBanditSampling):
             A: size of the multi-armed bandit 
             reward_function: the reward function of the multi-armed bandit
             reward_prior: the assumed prior for the reward function of the multi-armed bandit (dictionary)
+            n_samples: number of samples for action decision at each time instant
             M: number of samples to use in the Monte Carlo integration
         """
         
@@ -333,7 +340,146 @@ class BayesianBanditSamplingMonteCarlo(BayesianBanditSampling):
         
     def compute_action_predictive_density(self, t):
         """ Compute the predictive density of each action using Monte Carlo sampling, based on rewards and actions up until time t
-            Overrides abstract method
+            Overrides abstract method as follows
+            - Draw parameters from the posterior
+            - Draw returns, for each parameter sample
+            - Decide, for each drawn return sample, which action is the best
+            - Compute the action predictive density, as a Monte Carlo by averaging best action samples
+        
+        Args:
+            t: time of the execution of the bandit
+        """
+        
+        # Get posterior hyperparameters
+        if self.reward_prior['dist'].name == 'beta':
+            posterior_hyperparams=(self.reward_posterior['alpha'][-1], self.reward_posterior['beta'][-1])
+        else:
+            raise ValueError('reward_prior={} not implemented yet'.format(self.reward_prior['dist'].name))
+        
+        # Sample reward's parameters, given updated hyperparameters
+        # Just one here!!!
+        reward_params_samples=self.reward_posterior['dist'][0].rvs(*posterior_hyperparams, size=(self.A,1))
+           
+        # Sample returns, using updated parameters
+        if self.reward_function['dist'].name == 'bernoulli':                   
+            # Sample rewards, from Bernoulli with sampled parameters
+            returns_samples=self.reward_function['dist'].rvs(reward_params_samples, size=(self.A, self.M))
+        else:
+            # In general,
+            returns_samples=self.reward_function['dist'].rvs(reward_params_samples)
+        
+        self.returns_expected[:,t]=returns_samples.mean(axis=1)
+        
+        # Monte Carlo integration for action predictive density
+        # Mean times expected reward is maximum
+        self.actions_predictive_density['mean'][:,t]=((returns_samples.argmax(axis=0)[None,:]==np.arange(self.A)[:,None]).astype(int)).mean(axis=1)
+        # Variance of times expected reward is maximum
+        self.actions_predictive_density['var'][:,t]=((returns_samples.argmax(axis=0)[None,:]==np.arange(self.A)[:,None]).astype(int)).var(axis=1)
+        
+class BayesianBanditSampling_expectedReturnMonteCarlo(BayesianBanditSampling):
+    """Class for Bayesian Bandits Sampling with Monte Carlo over expected returns
+
+        This class updates the predictive action density of each action using Monte Carlo sampling, based on previous rewards and actions        
+        - Draw parameters from the posterior
+        - Compute the expected return for each parameter sample
+        - Compute the overall expected return estimate, as a Monte Carlo by averaging over per-sample expected returns
+        - Decide, given the MC expected return, which action is the best
+
+    Attributes (besides inherited):
+        M: number of samples to use in the Monte Carlo integration
+    """
+    
+    def __init__(self, A, reward_function, reward_prior, n_samples, M):
+        """ Initialize Bayesian Bandits with public attributes 
+        
+        Args:
+            A: size of the multi-armed bandit 
+            reward_function: the reward function of the multi-armed bandit
+            reward_prior: the assumed prior for the reward function of the multi-armed bandit (dictionary)
+            n_samples: number of samples for action decision at each time instant
+            M: number of samples to use in the Monte Carlo integration
+        """
+        
+        # Initialize bandit (without parameters)
+        super().__init__(A, reward_function, reward_prior, n_samples)
+    
+        # Monte carlo samples
+        self.M=M
+        
+    def compute_action_predictive_density(self, t):
+        """ Compute the predictive density of each action using Monte Carlo sampling, based on rewards and actions up until time t
+            Overrides abstract method as follows
+            - Draw parameters from the posterior
+            - Compute the expected return for each parameter sample
+            - Compute the overall expected return estimate, as a Monte Carlo by averaging over per-sample expected returns
+            - Decide, given the MC expected return, which action is the best
+        
+        Args:
+            t: time of the execution of the bandit
+        """
+        
+        # Get posterior hyperparameters
+        if self.reward_prior['dist'].name == 'beta':
+            posterior_hyperparams=(self.reward_posterior['alpha'][-1], self.reward_posterior['beta'][-1])
+        else:
+            raise ValueError('reward_prior={} not implemented yet'.format(self.reward_prior['dist'].name))
+        
+        # Sample reward's parameters, given updated hyperparameters
+        reward_params_samples=self.reward_posterior['dist'][0].rvs(*posterior_hyperparams, size=(self.A,self.M))
+           
+        # Compute expected returns, using updated parameters
+        if self.reward_function['dist'].name == 'bernoulli':                   
+            # Compute expected rewards, from Bernoulli with sampled parameters
+            returns_expected_samples=reward_params_samples
+        else:
+            # In general,
+            returns_expected_samples=self.reward_function['dist'].mean(reward_params_samples)
+        
+        self.returns_expected[:,t]=returns_expected_samples.mean(axis=1)
+        
+        # Monte Carlo integration for action predictive density
+        # Mean times expected reward is maximum
+        self.actions_predictive_density['mean'][:,t]=(self.returns_expected[:,t].argmax(axis=0)==np.arange(self.A)).astype(int)
+        # Variance of times expected reward is maximum
+        self.actions_predictive_density['var'][:,t]=0   #No variance
+
+class BayesianBanditSampling_actionMonteCarlo(BayesianBanditSampling):
+    """Class for Bayesian Bandits Sampling with Monte Carlo over actions
+
+        This class updates the predictive action density of each action using Monte Carlo sampling, based on previous rewards and actions        
+        - Draw parameters from the posterior
+        - Compute the expected return for each parameter sample
+        - Decide, for each sample, which action is the best
+        - Compute the action predictive density, as a Monte Carlo by averaging best action samples
+
+    Attributes (besides inherited):
+        M: number of samples to use in the Monte Carlo integration
+    """
+    
+    def __init__(self, A, reward_function, reward_prior, n_samples, M):
+        """ Initialize Bayesian Bandits with public attributes 
+        
+        Args:
+            A: size of the multi-armed bandit 
+            reward_function: the reward function of the multi-armed bandit
+            reward_prior: the assumed prior for the reward function of the multi-armed bandit (dictionary)
+            n_samples: number of samples for action decision at each time instant
+            M: number of samples to use in the Monte Carlo integration
+        """
+        
+        # Initialize bandit (without parameters)
+        super().__init__(A, reward_function, reward_prior, n_samples)
+    
+        # Monte carlo samples
+        self.M=M
+        
+    def compute_action_predictive_density(self, t):
+        """ Compute the predictive density of each action using Monte Carlo sampling, based on rewards and actions up until time t
+            Overrides abstract method as follows            
+            - Draw parameters from the posterior
+            - Compute the expected return for each parameter sample
+            - Decide, for each sample, which action is the best
+            - Compute the action predictive density, as a Monte Carlo by averaging best action samples
         
         Args:
             t: time of the execution of the bandit
