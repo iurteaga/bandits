@@ -13,23 +13,23 @@ class VariationalBanditSampling(BanditSampling):
     Attributes (besides inherited):
         reward_prior: the assumed prior for the multi-armed bandit's reward function
         reward_posterior: the posterior for the learned multi-armed bandit's reward function
+        arm_predictive_policy: how to compute arm predictive density and sampling policy
         arm_predictive_density: predictive density of each arm
-        sampling: arm sampling strategy
         arm_N_samples: number of candidate arm samples to draw at each time instant
     """
     
-    def __init__(self, A, reward_function, reward_prior, sampling):
+    def __init__(self, A, reward_function, reward_prior, arm_predictive_policy):
         """ Initialize the Bandit object and its attributes
         
         Args:
             A: the size of the bandit
             reward_function: the reward function of the bandit
             reward_prior: the assumed prior for the multi-armed bandit's reward function
-            sampling: arm sampling strategy
+            arm_predictive_policy: how to compute arm predictive density and sampling policy
         """
         
         # Initialize
-        super().__init__(A, reward_function, reward_prior, sampling)
+        super().__init__(A, reward_function, reward_prior, arm_predictive_policy)
             
     def update_reward_posterior(self, t):
         """ Update the posterior of the reward density, based on available information at time t
@@ -42,8 +42,12 @@ class VariationalBanditSampling(BanditSampling):
         # Linear Gaussian Mixture with Normal Inverse Gamma conjugate prior
         if self.reward_prior['type'] == 'linear_gaussian_mixture' and self.reward_prior['dist'] == 'NIG':
             # Variational update
+            # Requires responsibilities of mixtures per arm
+            self.r=np.zeros((self.A, self.reward_prior['K'], self.rewards.shape[1]))
+            # Lower bound
             lower_bound=np.zeros(self.reward_prior['variational_max_iter']+1)
             lower_bound[0]=np.finfo(float).min
+            # First iteration
             n_iter=1
             self.update_reward_posterior_variational_resp(t)
             self.update_reward_posterior_variational_params()
@@ -167,13 +171,6 @@ class VariationalBanditSampling(BanditSampling):
         
         # Return lower bound
         return E_ln_fY + E_ln_pZ + E_ln_fpi + E_ln_fthetasigma - E_ln_qZ - E_ln_qpi - E_ln_qthetasigma
-        
-    @abc.abstractmethod
-    def compute_arm_predictive_density(self, t):
-        """ Compute the predictive density of each arm based on available information at time t        
-        Args:
-            t: time of the execution of the bandit
-        """
 	
 # Making sure the main program is not executed when the module is imported
 if __name__ == '__main__':

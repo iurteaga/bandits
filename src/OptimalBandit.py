@@ -93,10 +93,12 @@ class OptimalBandit(Bandit):
         self.rewards=np.zeros((self.A,t_max))
         # Compute expected rewards with true function
         self.compute_true_expected_rewards()
+        # Optimal bandit expects true
+        self.rewards_expected=self.true_expected_rewards
         # And decide optimal action that maximizes expected reward
-        self.actions[self.true_expected_rewards.argmax()]=np.ones(t_max)
+        self.actions[self.true_expected_rewards.argmax(axis=0),np.arange(t_max)]=1
         # Simply draw from optimal action as many times as indicated
-        self.rewards=self.play_arm(self.true_expected_rewardsS.argmax(), np.arange(t_max))
+        self.play_arm(self.true_expected_rewards.argmax(axis=0), np.arange(t_max))
         # Compute regret
         self.regrets=self.true_expected_rewards.max(axis=0) - self.rewards.sum(axis=0)
         

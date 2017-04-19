@@ -76,18 +76,24 @@ class Bandit(abc.ABC,object):
             a: arm to play
             t: time index (or set of indexes)
         """
-                
+
         if self.reward_function['dist'].name == 'bernoulli':
             # For Bernoulli distribution: expected value is \theta
             self.rewards[a,t]=self.reward_function['dist'].rvs(self.reward_function['theta'][a])
         elif self.reward_function['type'] == 'linear_gaussian':
             # For Linear Gaussian contextual bandit, expected value is dot product of context and parameters \theta
-            self.rewards[a,t]=self.reward_function['dist'].rvs(loc=np.einsum('dt,d->t', self.context[:,t], self.reward_function['theta'][a]), scale=self.reward_function['sigma'][a])
+            self.rewards[a,t]=self.reward_function['dist'].rvs(loc=np.einsum('dt,dt->t', np.reshape(self.context[:,t], (self.d_context, t.size)), np.reshape(self.reward_function['theta'][a].T,(self.d_context, t.size))), scale=self.reward_function['sigma'][a])
         elif self.reward_function['type'] == 'linear_gaussian_mixture':
             # First, pick mixture
-            mixture=np.where(np.random.multinomial(1,self.reward_function['pi'][a]))[0][0]
+                # TODO: becaue np.random.multinomial does not implement broadcasting
+            if t.size==1:
+                mixture=np.where(np.random.multinomial(1,self.reward_function['pi'][a]))[0][0]
+            else:
+                mixture=np.zeros(t.size, dtype='int')
+                for t_idx in np.arange(t.size):
+                    mixture[t_idx]=np.where(np.random.multinomial(1,self.reward_function['pi'][a][t_idx]))[0][0]
             # Then draw
-            self.rewards[a,t]=self.reward_function['dist'].rvs(loc=np.einsum('dt,d->t', self.context[:,t], self.reward_function['theta'][a,mixture]), scale=self.reward_function['sigma'][a,mixture])
+            self.rewards[a,t]=self.reward_function['dist'].rvs(loc=np.einsum('dt,dt->t', np.reshape(self.context[:,t], (self.d_context, t.size)), np.reshape(self.reward_function['theta'][a,mixture].T,(self.d_context, t.size))), scale=self.reward_function['sigma'][a,mixture])
         # TODO: Add other reward functions
         else:
             raise ValueError('Reward function={} not implemented yet'.format(self.reward_function))
@@ -101,13 +107,13 @@ class Bandit(abc.ABC,object):
                 
         if self.reward_function['dist'].name == 'bernoulli':
             # For Bernoulli distribution: expected value is \theta
-            self.true_expected_rewards=self.reward_function['theta']
+            self.true_expected_rewards=self.reward_function['theta'][:,None]*np.ones(self.rewards.shape[1])
         elif self.reward_function['type'] == 'linear_gaussian':
             # For contextual linear Gaussian bandit, expected value is dot product of context and parameters \theta
             self.true_expected_rewards=np.einsum('dt,ad->at', self.context, self.reward_function['theta'])
         elif self.reward_function['type'] == 'linear_gaussian_mixture':
             # For contextual linear Gaussian mixture model bandit, weighted average of each mixture's expected value
-            self.true_expected_rewards=np.einsum('ak,akd,dt->at', pi, theta, context)
+            self.true_expected_rewards=np.einsum('ak,akd,dt->at', self.reward_function['pi'], self.reward_function['theta'], self.context)
         # TODO: Add other reward functions
         else:
             raise ValueError('Reward function={} not implemented yet'.format(self.reward_function))

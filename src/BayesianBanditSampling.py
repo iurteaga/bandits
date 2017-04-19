@@ -13,23 +13,23 @@ class BayesianBanditSampling(BanditSampling):
     Attributes (besides inherited):
         reward_prior: the assumed prior for the multi-armed bandit's reward function
         reward_posterior: the posterior for the learned multi-armed bandit's reward function
+        arm_predictive_policy: how to compute arm predictive density and sampling policy
         arm_predictive_density: predictive density of each arm
-        sampling: arm sampling strategy
         arm_N_samples: number of candidate arm samples to draw at each time instant
     """
     
-    def __init__(self, A, reward_function, reward_prior, sampling):
+    def __init__(self, A, reward_function, reward_prior, arm_predictive_policy):
         """ Initialize the Bandit object and its attributes
         
         Args:
             A: the size of the bandit
             reward_function: the reward function of the bandit
             reward_prior: the assumed prior for the multi-armed bandit's reward function
-            sampling: arm sampling strategy
+            arm_predictive_policy: how to compute arm predictive density and sampling policy
         """
         
         # Initialize
-        super().__init__(A, reward_function, reward_prior, sampling)
+        super().__init__(A, reward_function, reward_prior, arm_predictive_policy)
             
     def update_reward_posterior(self, t):
         """ Update the posterior of the reward density, based on available information at time t
@@ -45,8 +45,8 @@ class BayesianBanditSampling(BanditSampling):
             s_t=self.rewards[:,:t+1].sum(axis=1, keepdims=True)
             # Number of trials up to t (included)
             n_t=self.actions[:,:t+1].sum(axis=1, keepdims=True)
-            self.reward_posterior['alpha'][-1]=self.reward_prior['alpha']+s_t
-            self.reward_posterior['beta'][-1]=self.reward_prior['beta']+(n_t-s_t)
+            self.reward_posterior['alpha']=self.reward_prior['alpha']+s_t
+            self.reward_posterior['beta']=self.reward_prior['beta']+(n_t-s_t)
         
         # Linear Gaussian reward with Normal Inverse Gamma conjugate prior
         elif self.reward_function['type'] == 'linear_gaussian' and self.reward_prior['dist'] == 'NIG':
