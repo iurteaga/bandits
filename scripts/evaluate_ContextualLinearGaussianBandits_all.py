@@ -160,7 +160,7 @@ if __name__ == '__main__':
     parser.add_argument('-M', type=int, default=1000, help='Number of samples for the MC integration')
     parser.add_argument('-N_max', type=int, default=25, help='Maximum number of arm candidate samples')
     parser.add_argument('-R', type=int, default=1, help='Number of realizations to run')
-    parser.add_argument('-exec_type', type=str, default='online', help='Type of execution to run: batch or sequential')
+    parser.add_argument('-exec_type', type=str, default='sequential', help='Type of execution to run: batch or sequential')
     parser.add_argument('-d_context', type=int, default=2, help='Dimensionality of context')
     parser.add_argument('-type_context', type=str, default='static', help='Type of context: static (default), randn, rand')
     parser.add_argument('-theta', nargs='+', type=float, default=None, help='Thetas per arm')

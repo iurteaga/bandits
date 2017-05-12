@@ -155,7 +155,7 @@ def main(A, K, t_max, R, exec_type, pi, theta, sigma, d_context, type_context, p
 # Making sure the main program is not executed when the module is imported
 if __name__ == '__main__':
     # Input parser
-    # Example: python3 -m pdb evaluate_ContextualLinearGaussianMixtureBandits_TS.py -A 2 -t_max 10 -R 2 -exec_type sequential -d_context 2 -type_context randn -pi 0.5 0.5 0.1 0.9 -theta 1 1 0 0 -1 -1 2 2 -sigma 1 1 1 1 -prior_K 2
+    # Example: python3 -m pdb evaluate_ContextualLinearGaussianMixtureBandits_TS.py -A 2 -K 2 -t_max 10 -R 2 -exec_type sequential -d_context 2 -type_context randn -pi 0.5 0.5 0.1 0.9 -theta 1 1 0 0 -1 -1 2 2 -sigma 1 1 1 1 -prior_K 2
     parser = argparse.ArgumentParser(description='Evaluate Contextual Linear Gaussian Mixture Bandits: optimal and TS policy approaches.')
     parser.add_argument('-A', type=int, default=2, help='Number of arms of the bandit')
     parser.add_argument('-K', type=int, default=2, help='Number of mixtures per arm of the bandit')
@@ -163,7 +163,7 @@ if __name__ == '__main__':
     #parser.add_argument('-M', type=int, default=1000, help='Number of samples for the MC integration')
     #parser.add_argument('-N_max', type=int, default=25, help='Maximum number of arm candidate samples')
     parser.add_argument('-R', type=int, default=1, help='Number of realizations to run')
-    parser.add_argument('-exec_type', type=str, default='online', help='Type of execution to run: batch or sequential')
+    parser.add_argument('-exec_type', type=str, default='sequential', help='Type of execution to run: batch or sequential')
     parser.add_argument('-d_context', type=int, default=2, help='Dimensionality of context')
     parser.add_argument('-type_context', type=str, default='static', help='Type of context: static (default), randn, rand')
     parser.add_argument('-pi', nargs='+', type=float, default=None, help='Mixture proportions per arm')

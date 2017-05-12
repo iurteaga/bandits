@@ -137,14 +137,14 @@ def main(A, t_max, M, N_max, R, exec_type, theta):
 # Making sure the main program is not executed when the module is imported
 if __name__ == '__main__':
     # Input parser
-    # Example: python3 -m pdb evaluate_BernoullBandits_all.py -A 2 -t_max 10 -M 50 -N_max 20 -R 2 -exec_type sequential -theta 0.2 0.5
+    # Example: python3 -m pdb evaluate_BernoulliBandits_all.py -A 2 -t_max 10 -M 50 -N_max 20 -R 2 -exec_type sequential -theta 0.2 0.5
     parser = argparse.ArgumentParser(description='Evaluate Bernoulli Bandits: optimal, TS and all sampling policy approaches.')
     parser.add_argument('-A', type=int, default=2, help='Number of arms of the bandit')
     parser.add_argument('-t_max', type=int, default=10, help='Time-instants to run the bandit')
     parser.add_argument('-M', type=int, default=1000, help='Number of samples for the MC integration')
     parser.add_argument('-N_max', type=int, default=25, help='Maximum number of arm candidate samples')
     parser.add_argument('-R', type=int, default=1, help='Number of realizations to run')
-    parser.add_argument('-exec_type', type=str, default='online', help='Type of execution to run: batch or sequential')
+    parser.add_argument('-exec_type', type=str, default='sequential', help='Type of execution to run: batch or sequential')
     parser.add_argument('-theta', nargs='+', type=float, default=None, help='Theta parameters of the Bernoulli distribution')
 
     # Get arguments
