@@ -36,10 +36,12 @@ class Bandit(abc.ABC,object):
         actions: the actions that the bandit takes (per realization) as A by t_max array
         rewards: rewards obtained by each arm of the bandit (per realization) as A by t_max array
         regrets: regret of the bandit (per realization) as t_max array
+        cumregrets: cumulative regret of the bandit (per realization) as t_max array
         rewards_expected: the expected rewards computed for each arm of the bandit (per realization) as A by t_max array
         actions_R: dictionary with the actions that the bandit takes (for R realizations)
         rewards_R: dictionary with the rewards obtained by the bandit (for R realizations)
         regrets_R: dictioinary with the regret of the bandit (for R realizations)
+        cumregrets_R: dictioinary with the cumulative regret of the bandit (for R realizations)
         rewards_expected_R: the expected rewards of the bandit (for R realizations)
     """
     
@@ -60,6 +62,7 @@ class Bandit(abc.ABC,object):
         self.actions=None
         self.rewards=None
         self.regrets=None
+        self.cumregrets=None
         self.rewards_expected=None
         
         # For all realizations
@@ -67,6 +70,7 @@ class Bandit(abc.ABC,object):
         self.actions_R=None
         self.rewards_R=None
         self.regrets_R=None
+        self.cumregrets_R=None
         self.rewards_expected_R=None
 
     def play_arm(self, a, t):
