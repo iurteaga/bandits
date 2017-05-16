@@ -129,6 +129,12 @@ def main(A, t_max, M, N_max, R, exec_type, theta, sigma, d_context, type_context
     plot_std=True
     bandits_plot_regret(bandits, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
     
+    # Plot cumregret
+    plot_std=False
+    bandits_plot_cumregret(bandits, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
+    plot_std=True
+    bandits_plot_cumregret(bandits, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)
+    
     # Plot rewards expected
     plot_std=True
     bandits_plot_rewards_expected(bandits, bandits_colors, bandits_labels, t_plot, plot_std, plot_save=dir_plots)

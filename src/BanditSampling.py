@@ -34,8 +34,6 @@ class BanditSampling(Bandit):
         
         # Reward prior
         self.reward_prior=reward_prior
-        # Initialize reward posterior with prior's structure
-        self.reward_posterior=copy.deepcopy(reward_prior)
         # Arm predictive computation strategy
         self.arm_predictive_policy=arm_predictive_policy
         
@@ -130,6 +128,8 @@ class BanditSampling(Bandit):
         self.rewards_expected=np.zeros((self.A,t_max))
         self.arm_predictive_density={'mean':np.zeros((self.A,t_max)), 'var':np.zeros((self.A,t_max))}
         self.arm_N_samples=np.ones(t_max)
+        # Initialize reward posterior with prior
+        self.reward_posterior=copy.deepcopy(self.reward_prior)
         
         # Execute the bandit for each time instant
         for t in np.arange(0,t_max):

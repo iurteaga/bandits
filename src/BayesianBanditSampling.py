@@ -43,8 +43,9 @@ class BayesianBanditSampling(BanditSampling):
         # Binomial/Bernoulli reward with beta conjugate prior
         if self.reward_function['dist'].name == 'bernoulli' and self.reward_prior['dist'].name == 'beta':
             if update_type=='sequential':
-                self.reward_posterior['alpha']+=self.rewards[:,t]
-                self.reward_posterior['beta']+=1-self.rewards[:,t]
+                a = np.where(self.actions[:,t]==1)[0][0]
+                self.reward_posterior['alpha'][a]+=self.rewards[a,t]
+                self.reward_posterior['beta'][a]+=(1-self.rewards[a,t])
             elif update_type=='batch':
                 # Number of successes up to t (included)        
                 s_t=self.rewards[:,:t+1].sum(axis=1, keepdims=True)

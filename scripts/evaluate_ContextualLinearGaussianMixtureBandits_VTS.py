@@ -20,7 +20,7 @@ from plot_Bandits import *
 def main(A, K, t_max, R, exec_type, pi, theta, sigma, d_context, type_context, prior_K):
 
     ############################### MAIN CONFIG  ############################### 
-    print('{}-armed Contextual Linear Gaussian mixture bandit with optimal and TS policies for {} time-instants and {} realizations'.format(A, t_max, R))
+    print('{}-armed Contextual Linear Gaussian mixture bandit with VTS policies for {} time-instants and {} realizations'.format(A, t_max, R))
 
     # Directory configuration
     dir_string='../results/{}/A={}/t_max={}/R={}/d_context={}/type_context={}/pi={}/theta={}/sigma={}'.format(os.path.basename(__file__).split('.')[0], A, t_max, R, d_context, type_context, str.replace(str.strip(np.array_str(pi.flatten()),' []'), '  ', '_'), str.replace(str.strip(np.array_str(theta.flatten()),' []'), '  ', '_'), str.replace(str.strip(np.array_str(sigma.flatten()),' []'), '  ', '_'))
@@ -47,7 +47,7 @@ def main(A, K, t_max, R, exec_type, pi, theta, sigma, d_context, type_context, p
     ########## Variational Inference
     # Variational parameters
     variational_max_iter=100
-    variational_lb_eps=0.001
+    variational_lb_eps=0.0001
     # Plotting
     variational_plot_save='show'
     # Plotting directories
@@ -59,11 +59,7 @@ def main(A, K, t_max, R, exec_type, pi, theta, sigma, d_context, type_context, p
     # Bandits to evaluate as a list
     bandits=[]
     bandits_labels=[]
-    
-    ### Optimal bandit
-    bandits.append(OptimalBandit(A, reward_function))
-    bandits_labels.append('Optimal Bandit')
-    
+        
     ### Thompson sampling: when sampling with static n=1 and no Monte Carlo
     thompsonSampling={'sampling_type':'static', 'arm_N_samples':1, 'M':1, 'MC_type':'MC_arms'}
 
@@ -96,12 +92,13 @@ def main(A, K, t_max, R, exec_type, pi, theta, sigma, d_context, type_context, p
                 for k in np.arange(this_K):
                     prior_Sigma[a,k,:,:]=np.eye(d_context)
                     
-            # Reward prior as dictionary
-            reward_prior={'type':'linear_gaussian_mixture', 'dist':'NIG', 'K':this_K, 'gamma':prior_gamma, 'alpha':prior_alpha, 'beta':prior_beta, 'theta':prior_theta, 'Sigma':prior_Sigma, 'variational_max_iter':variational_max_iter, 'variational_lb_eps':variational_lb_eps, 'variational_plot_save':variational_plot_save+'/prior_K{}'.format(this_K)}
+            # Reward prior as dictionary: plotting Variational lower bound
+            #reward_prior={'type':'linear_gaussian_mixture', 'dist':'NIG', 'K':this_K, 'gamma':prior_gamma, 'alpha':prior_alpha, 'beta':prior_beta, 'theta':prior_theta, 'Sigma':prior_Sigma, 'variational_max_iter':variational_max_iter, 'variational_lb_eps':variational_lb_eps, 'variational_plot_save':variational_plot_save+'/prior_K{}'.format(this_K)}
+            reward_prior={'type':'linear_gaussian_mixture', 'dist':'NIG', 'K':this_K, 'gamma':prior_gamma, 'alpha':prior_alpha, 'beta':prior_beta, 'theta':prior_theta, 'Sigma':prior_Sigma, 'variational_max_iter':variational_max_iter, 'variational_lb_eps':variational_lb_eps, 'variational_plot_save':None}
         
             # Instantitate bandit    
             bandits.append(VariationalBanditSampling(A, reward_function, reward_prior, thompsonSampling))
-            bandits_labels.append('TS, prior_K={}, {}'.format(this_K,mixture_expectation))
+            bandits_labels.append('VTS, prior_K={}, {}'.format(this_K,mixture_expectation))
                            
     ### BANDIT EXECUTION
     # Execute each bandit
@@ -161,8 +158,8 @@ def main(A, K, t_max, R, exec_type, pi, theta, sigma, d_context, type_context, p
 # Making sure the main program is not executed when the module is imported
 if __name__ == '__main__':
     # Input parser
-    # Example: python3 -m pdb evaluate_ContextualLinearGaussianMixtureBandits_TS.py -A 2 -K 2 -t_max 10 -R 2 -exec_type sequential -d_context 2 -type_context randn -pi 0.5 0.5 0.1 0.9 -theta 1 1 0 0 -1 -1 2 2 -sigma 1 1 1 1 -prior_K 2
-    parser = argparse.ArgumentParser(description='Evaluate Contextual Linear Gaussian Mixture Bandits: optimal and TS policy approaches.')
+    # Example: python3 -m pdb evaluate_ContextualLinearGaussianMixtureBandits_VTS.py -A 2 -K 2 -t_max 10 -R 2 -exec_type sequential -d_context 2 -type_context randn -pi 0.5 0.5 0.1 0.9 -theta 1 1 0 0 -1 -1 2 2 -sigma 1 1 1 1 -prior_K 2
+    parser = argparse.ArgumentParser(description='Evaluate Contextual Linear Gaussian Mixture Bandits: VTS policy approaches.')
     parser.add_argument('-A', type=int, default=2, help='Number of arms of the bandit')
     parser.add_argument('-K', type=int, default=2, help='Number of mixtures per arm of the bandit')
     parser.add_argument('-t_max', type=int, default=10, help='Time-instants to run the bandit')

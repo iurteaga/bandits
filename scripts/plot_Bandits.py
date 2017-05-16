@@ -102,7 +102,7 @@ def bandits_plot_regret(bandits, colors, labels, t_plot, plot_std=True, plot_sav
         if plot_std:
             plt.fill_between(np.arange(t_plot), bandit.regrets_R['mean'][0,0:t_plot]-np.sqrt(bandit.regrets_R['var'][0,0:t_plot]), bandit.regrets_R['mean'][0,0:t_plot]+np.sqrt(bandit.regrets_R['var'][0,0:t_plot]),alpha=0.5, facecolor=colors[n])
     plt.xlabel('t')
-    plt.ylabel(r'$l_t=y_t^*-y_t$')
+    plt.ylabel(r'$r_t=y_t^*-y_t$')
     plt.title('Regret over time')
     plt.xlim([0, t_plot-1])
     legend = plt.legend(bbox_to_anchor=(1.05,1.05), loc='upper left', ncol=1, shadow=True)
@@ -112,21 +112,23 @@ def bandits_plot_regret(bandits, colors, labels, t_plot, plot_std=True, plot_sav
         plt.savefig(plot_save+'/regret_std'+str(plot_std)+'.pdf', format='pdf', bbox_inches='tight')
         plt.close()
 
+# Bandit plotting function: regrets 
+def bandits_plot_cumregret(bandits, colors, labels, t_plot, plot_std=True, plot_save=None):
     # Cumulative regret over time
     plt.figure()
     for (n,bandit) in enumerate(bandits):
-        plt.plot(np.arange(t_plot), bandit.regrets_R['mean'][0,0:t_plot].cumsum(), colors[n], label=labels[n])
+        plt.plot(np.arange(t_plot), bandit.cumregrets_R['mean'][0,0:t_plot], colors[n], label=labels[n])
         if plot_std:
-            plt.fill_between(np.arange(t_plot), bandit.regrets_R['mean'][0,0:t_plot].cumsum()-np.sqrt(bandit.regrets_R['var'][0,0:t_plot]), bandit.regrets_R['mean'][0,0:t_plot].cumsum()+np.sqrt(bandit.regrets_R['var'][0,0:t_plot]),alpha=0.5, facecolor=colors[n])
+            plt.fill_between(np.arange(t_plot), bandit.cumregrets_R['mean'][0,0:t_plot]-np.sqrt(bandit.cumregrets_R['var'][0,0:t_plot]), bandit.cumregrets_R['mean'][0,0:t_plot]+np.sqrt(bandit.cumregrets_R['var'][0,0:t_plot]),alpha=0.5, facecolor=colors[n])
     plt.xlabel('t')
-    plt.ylabel(r'$L_t=\sum_{t=0}^T y_t^*-y_t$')
+    plt.ylabel(r'$R_t=\sum_{t=0}^T y_t^*-y_t$')
     plt.title('Cumulative regret over time')
     plt.xlim([0, t_plot-1])
     legend = plt.legend(bbox_to_anchor=(1.05,1.05), loc='upper left', ncol=1, shadow=True)
     if plot_save is None: 
         plt.show()
     else:
-        plt.savefig(plot_save+'/regret_cumulative_std'+str(plot_std)+'.pdf', format='pdf', bbox_inches='tight')
+        plt.savefig(plot_save+'/cumregret_std'+str(plot_std)+'.pdf', format='pdf', bbox_inches='tight')
         plt.close()
 
 
