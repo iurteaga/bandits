@@ -1,0 +1,58 @@
+%\begin{tikzpicture}[x=1.7cm,y=1.8cm]
+\begin{tikzpicture}
+	% Nodes
+	% Return y
+	\node[obs] (y-t) {$y_{t}$};
+	% Linear Gaussian parameters
+	\node[latent, above=2.75 of y-t, xshift=-2cm]  (w-ak) {$w_{a,k}$};
+	\node[latent, above=2.75 of y-t, xshift=0cm] (sigma-ak) {$\sigma_{a,k}^2$};
+	% Mixture indicator z
+	\node[latent, above=1.25 of y-t, xshift=1.5cm] (z-akt) {$z_{a,k,t}$};
+	% Mixture proportions pi
+	\node[latent, above=0.75 of z-akt, xshift=1cm] (pi-a) {$\pi_{a}$};	
+	% Action a
+	\node[latent, left=1 of y-t] (a-t) {$a_t$};
+	% Context x
+	\node[latent, below=0.5 of y-t]  (x-t) {$x_t$};
+	
+	% Hyperparameters: constants
+	% \sigma's IG hyperparameters
+	\node[const, above=0.5 of sigma-ak, xshift=-0.5cm] (alpha-ak) {$\alpha_{a,k}$} ;
+	\node[const, above=0.5 of sigma-ak, xshift=0.5cm]  (beta-ak) {$\beta_{a,k}$} ;
+	
+	% \theta' N hyperparameters
+	\node[const, above=0.5 of w-ak, xshift=-0.5cm] (mu-ak) {$u_{a,k}$} ;
+	\node[const, above=0.5 of w-ak, xshift=0.5cm]  (V-ak) {$V_{a,k}$} ;
+	
+	% pi's Dirichlet hyperparameters
+	\node[const, above=0.5 of pi-a] (gamma-a) {$\gamma_{a}$} ;
+	
+	% Edges
+	% Connect sigma hyperparameters
+	\edge {alpha-ak,beta-ak} {sigma-ak} ;
+	% Connect theta hyperparameters
+	\edge {mu-ak,V-ak,sigma-ak} {w-ak} ;
+	% Connect mixture proportion hyperparameters
+	\edge {gamma-a} {pi-a} ;
+	% Connect mixture proportions to indicators
+	\edge {pi-a} {z-akt} ;
+	% Connect mixture parameters, mixture indicator, context and arm to observation
+	\edge {sigma-ak, w-ak, z-akt,x-t,a-t} {y-t} ;
+	
+	% Plates
+	% Over time
+	\plate {t} {(a-t)(x-t)(z-akt)(y-t)} {$t$} ;
+	% Over each mixture
+	\plate {k}{
+		(alpha-ak)(beta-ak)(mu-ak)(V-ak) % hyperparameters
+		(sigma-ak)(w-ak) % parameters
+		(z-akt) % indicator
+		} {$K$} ;
+	% Over each arm
+	\plate {a}{
+		(alpha-ak)(beta-ak)(mu-ak)(V-ak)(gamma-a) % hyperparameters
+		(sigma-ak)(w-ak)(pi-a) % parameters
+		(z-akt) % indicator
+		(k.north west) (k.south west) % Extra space
+	} {$A$} ;
+\end{tikzpicture}
