@@ -36,11 +36,13 @@ class OptimalBandit(Bandit):
         if exec_type == 'sequential':
             self.rewards_R={'mean':np.zeros((1,t_max)), 'm2':np.zeros((1,t_max)), 'var':np.zeros((1,t_max))}
             self.regrets_R={'mean':np.zeros((1,t_max)), 'm2':np.zeros((1,t_max)), 'var':np.zeros((1,t_max))}
+            self.cumregrets_R={'mean':np.zeros((1,t_max)), 'm2':np.zeros((1,t_max)), 'var':np.zeros((1,t_max))}
             self.rewards_expected_R={'mean':np.zeros((self.A,t_max)), 'm2':np.zeros((self.A,t_max)), 'var':np.zeros((self.A,t_max))}
             self.actions_R={'mean':np.zeros((self.A,t_max)), 'm2':np.zeros((self.A,t_max)), 'var':np.zeros((self.A,t_max))}
         elif exec_type =='batch':
             self.rewards_R={'all':np.zeros((R,1,t_max)), 'mean':np.zeros((1,t_max)), 'var':np.zeros((1,t_max))}
             self.regrets_R={'all':np.zeros((R,1,t_max)), 'mean':np.zeros((1,t_max)), 'var':np.zeros((1,t_max))}
+            self.cumregrets_R={'all':np.zeros((R,1,t_max)), 'mean':np.zeros((1,t_max)), 'var':np.zeros((1,t_max))}
             self.rewards_expected_R={'all':np.zeros((R,self.A,t_max)), 'mean':np.zeros((self.A,t_max)), 'var':np.zeros((self.A,t_max))}
             self.actions_R={'all':np.zeros((R,self.A,t_max)), 'mean':np.zeros((self.A,t_max)), 'var':np.zeros((self.A,t_max))}
         else:
@@ -56,11 +58,13 @@ class OptimalBandit(Bandit):
                 # Update overall mean and variance sequentially
                 self.rewards_R['mean'], self.rewards_R['m2'], self.rewards_R['var']=online_update_mean_var(r+1, self.rewards.sum(axis=0), self.rewards_R['mean'], self.rewards_R['m2'])
                 self.regrets_R['mean'], self.regrets_R['m2'], self.regrets_R['var']=online_update_mean_var(r+1, self.regrets, self.regrets_R['mean'], self.regrets_R['m2'])
+                self.cumregrets_R['mean'], self.cumregrets_R['m2'], self.cumregrets_R['var']=online_update_mean_var(r+1, self.cumregrets, self.cumregrets_R['mean'], self.cumregrets_R['m2'])
                 self.rewards_expected_R['mean'], self.rewards_expected_R['m2'], self.rewards_expected_R['var']=online_update_mean_var(r+1, self.rewards_expected, self.rewards_expected_R['mean'], self.rewards_expected_R['m2'])
                 self.actions_R['mean'], self.actions_R['m2'], self.actions_R['var']=online_update_mean_var(r+1, self.actions, self.actions_R['mean'], self.actions_R['m2'])
             else:
                 self.rewards_R['all'][r,0,:]=self.rewards.sum(axis=0)
                 self.regrets_R['all'][r,0,:]=self.regrets
+                self.cumregrets_R['all'][r,0,:]=self.cumregrets
                 self.rewards_expected_R['all'][r,:,:]=self.rewards_expected
                 self.actions_R['all'][r,:,:]=self.actions
                 
@@ -70,6 +74,8 @@ class OptimalBandit(Bandit):
             self.rewards_R['var']=self.rewards_R['all'].var(axis=0)
             self.regrets_R['mean']=self.regrets_R['all'].mean(axis=0)
             self.regrets_R['var']=self.regrets_R['all'].var(axis=0)
+            self.cumregrets_R['mean']=self.cumregrets_R['all'].mean(axis=0)
+            self.cumregrets_R['var']=self.cumregrets_R['all'].var(axis=0)
             self.rewards_expected_R['mean']=self.rewards_expected_R['all'].mean(axis=0)
             self.rewards_expected_R['var']=self.rewards_expected_R['all'].var(axis=0)
             self.actions_R['mean']=self.actions_R['all'].mean(axis=0)
@@ -82,7 +88,7 @@ class OptimalBandit(Bandit):
             context: d_context by (at_least) t_max array with context for every time instant (None if does not apply)
         """
 
-        if context != None:
+        if np.all(context != None):
             # Contextual bandit
             self.d_context=context.shape[0]
             assert context.shape[1]>=t_max, 'Not enough context provided: context.shape[1]={} while t_max={}'.format(context.shape[1],t_max)
@@ -101,6 +107,7 @@ class OptimalBandit(Bandit):
         self.play_arm(self.true_expected_rewards.argmax(axis=0), np.arange(t_max))
         # Compute regret
         self.regrets=self.true_expected_rewards.max(axis=0) - self.rewards.sum(axis=0)
+        self.cumregrets=self.regrets.cumsum()
         
 # Making sure the main program is not executed when the module is imported
 if __name__ == '__main__':
