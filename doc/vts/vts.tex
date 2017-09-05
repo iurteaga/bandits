@@ -10,7 +10,6 @@
 \usepackage{nicefrac}       % compact symbols for 1/2, etc.
 \usepackage{microtype}      % microtypography
 
-%% Inigo
 % Math related
 \usepackage{amsmath}
 % Indicator
@@ -29,7 +28,7 @@
 \usepackage{algorithm}
 \usepackage{algpseudocode} 
 
-%%%% DEFINITIONS-MACROS: Inigo
+%%%% DEFINITIONS-MACROS
 % Real line
 \def \Real{{\mathbb R}} 
 \def \Natural{{\mathbb N}} 
@@ -169,9 +168,7 @@ which has flourished in the inference case over the past several decades, to app
 \section{Proposed method}
 \label{sec:proposed_method}
 
-The learning process, as explained in the formulation of Section \ref{sec:problem_formulation}, requires updating the posterior of the parameters at every time instant. For computation of $f(\theta|a_{1:t}, x_{1:t}, y_{1:t})$, knowledge of the reward distribution is instrumental. Broad application of the method is typically limited by the simple distributions for which sampling and calculating expectations are feasible (\eg the exponential family).
-
-In this work, we study finite mixture models as reward functions of the multi-armed bandit. Mixture models allow for the statistical modeling of a wide variety of stochastic phenomena; e.g., Gaussian mixture models can approximate arbitrarily well any continuous distribution and thus, provide a useful parametric framework to model unknown distributional shapes (\cite{b-McLachlan2004}). This flexibility comes at a cost, as learning the parameters of the mixture distribution becomes a challenge. In this work, we use and empirically validate variational inference to approximate underlying Gaussian mixture models in the contextual bandit case.
+The learning process, as explained in the formulation of Section \ref{sec:problem_formulation}, requires updating the posterior of the parameters at every time instant. For computation of $f(\theta|a_{1:t}, x_{1:t}, y_{1:t})$, knowledge of the reward distribution is instrumental. Broad application of the method is typically limited by the simple distributions for which sampling and calculating expectations are feasible (\eg the exponential family). In this work, we study finite mixture models as reward functions of the multi-armed bandit. Mixture models allow for the statistical modeling of a wide variety of stochastic phenomena; e.g., Gaussian mixture models can approximate arbitrarily well any continuous distribution and thus, provide a useful parametric framework to model unknown distributional shapes (\cite{b-McLachlan2004}). This flexibility comes at a cost, as learning the parameters of the mixture distribution becomes a challenge. In this work, we use and empirically validate variational inference to approximate underlying Gaussian mixture models in the contextual bandit case.
 
 For the rest of the paper, we consider a mixture of $K$ Gaussian distributions per arm $a \in \{1, \cdots, A\}$, where each of the Gaussians is linearly dependent on the shared context. Formally,
 \begin{equation}
@@ -190,7 +187,7 @@ f_a(y|x,z_{a},w_{a,k}, \sigma_{a,k}^2) =\prod_{k=1}^K \N(y|x^\top w_{a,k}, \sigm
 \label{eq:gaussian_mixture_model_z}
 \end{equation}
 
-Since the parameters of the mixture distribution are unknown, we consider their conjugate priors
+We consider conjugate priors for the unknown parameters of the mixture distribution
 \begin{equation}
 \begin{split}
 f(\pi_{a}|\gamma_{a,0}) &=\Dir(\pi_a|\gamma_{a,0}) \; ,\\
@@ -221,10 +218,7 @@ and parameter priors as in Eqn. \ref{eq:mixture_model_conjugate_priors}.
 
 For the model as described above, the true joint posterior distribution is intractable. Under the variational framework, we consider instead a restricted family of distributions and find the one that is a locally optimal approximation to the full posterior.
 
-We do so by minimizing the Kullback-Leibler divergence between the true distribution $f(\cdot)$, and our approximating distribution $q(\cdot)$. We 
-here consider
-%study 
-a set of parameterized distributions with the following mean-field factorization over the variables of interest
+We do so by minimizing the Kullback-Leibler divergence between the true distribution $f(\cdot)$, and our approximating distribution $q(\cdot)$. We here consider a set of parameterized distributions with the following mean-field factorization over the variables of interest
 \begin{equation}
 q(Z, \pi, w, \sigma^2)=q(Z) \prod_{a=1}^A q(\pi_a) \prod_{k=1}^{K} q(w_{a,k}, \sigma_{a,k}^2) \; ,
 \label{eq:variational_factorization}
@@ -297,10 +291,7 @@ The resulting solution to the variational parameters that minimize the divergenc
 
 The above iterative process is repeated until a convergence criterion is met. Usually, one iterates until the optimization improvement is small (relative to some prespecified $\epsilon$) or a maximum number of iterations is met.
 
-Note that we have considered the same number of mixtures per arm $K$, but the above expressions are readily 
-%applicable 
-generalizable
-to differing per-arm number of mixtures $K_a$, for $a\in\{1, \cdots, A\}$.
+Note that we have considered the same number of mixtures per arm $K$, but the above expressions are readily generalizable to differing per-arm number of mixtures $K_a$, for $a\in\{1, \cdots, A\}$.
 
 \subsection{Variational Thompson sampling}
 \label{ssec:variational_thompson_sampling}
@@ -403,7 +394,7 @@ Note that ``\textit{VTS with }$K=1$'' is equivalent to a vanilla Thompson sampli
 		\includegraphics[width=\textwidth]{./figs/model_b_cumregret.pdf}
 		\caption{\texttt{Scenario B} cumulative regret.}
 		\label{fig:model_b_cumregret}
-	\end{subfigure}%
+	\end{subfigure}
 	\caption{Cumulative regret comparison.}
 	\label{fig:cumregret_comparison}
 \end{figure}
@@ -425,7 +416,7 @@ MSE_a=\frac{1}{T}\sum_{t=0}^T \left(\mu_{a,t}-\hat{\mu}_{a,t} \right)^2 \; ,
 \end{equation}
 where $\hat{\mu}_{a,t}$ denotes the estimated expected reward for arm $a$ at time $t$.
 
-% MSE results (moved here for better placement)
+% MSE results
 \begin{figure}[!h]
 	\centering
 	\begin{subfigure}[b]{0.48\textwidth}
@@ -461,19 +452,13 @@ We emphasize the additional complexity of \texttt{Scenario B} in comparison to \
 
 These observations reinforce our claims on the flexibility of the presented technique. By allowing for complex modeling of the world and using variational inference to learn it, the proposed variational Thompson sampling can provide improved performance (in the sense of regret) for the contextual multi-armed bandit problem.
 
-%\subsubsection*{Acknowledgments}
-%
-%Use unnumbered third level headings for the acknowledgments. All
-%acknowledgments go at the end of the paper. Do not include
-%acknowledgments in the anonymized submission, only in the final paper.
-
 \section{Conclusion}
 \label{sec:conclusion}
 
 We have presented Variational Thompson Sampling, a new algorithm for the contextual multi-armed bandit setting, where we combine the variational inference machinery with a state of the art reinforcement learning technique. The proposed variational Thompson sampling allows for interpretable bandit modeling with complex reward functions learned from online data, extending the applicability of Thompson sampling by accommodating more realistic and complex models of the world. Empirical results show a significant cumulative regret reduction when using the proposed algorithm in simulated models. A natural future application is to contexts when relevant attributes of items, customers, patients, or other `examples' are unobservable, and thus the latent variables are truly `incomplete' as in the motivating case for expectation maximization modeling (\cite{j-Dempster1977}).
 
-
-%As future work, we will study our proposed method under reward distributions with practical applications and, ultimately, real datasets.
+\subsubsection*{Acknowledgments}
+This research was supported in part by NSF grant SCH-1344668. We thank Shipra Agrawal, David Blei and Daniel J. Hsu for discussions that helped motivate this work. We also thank Hang Su and Edward Peng Yu for their feedback and comments.
 
 % Select a .bst file for the style
 \bibliographystyle{plainnat}

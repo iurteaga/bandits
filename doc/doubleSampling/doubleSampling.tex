@@ -10,7 +10,6 @@
 \usepackage{nicefrac}       % compact symbols for 1/2, etc.
 \usepackage{microtype}      % microtypography
 
-%% Inigo
 % Math related
 \usepackage{amsmath}
 % Indicator
@@ -25,7 +24,7 @@
 \usepackage{algorithm}
 \usepackage{algpseudocode}
 
-%%%% DEFINITIONS-MACROS: Inigo
+%%%% DEFINITIONS-MACROS
 % Real line
 \def \Real{{\mathbb R}} 
 \def \Natural{{\mathbb N}} 
@@ -124,10 +123,7 @@ In this work, we are interested in the randomized probability matching approach,
 
 We propose a technique for the multi-armed bandit problem that is based on Monte Carlo sampling (to approximate otherwise unsolvable integrals) and a sampling-based arm-selection policy. The policy is driven by the uncertainty in the learning process, as it favors exploitation when certain about the properties of each arm, exploring otherwise. We empirically show that the proposed algorithm provides improved average performance, with significant regret reductions.
 
-We formally introduce the problem in Section \ref{sec:problem_formulation}, before providing all the details of our proposed double sampling method in Section \ref{sec:proposed_method}. The performance of 
-%our technique 
-double sampling
-is compared to the Thompson sampling approach in Section \ref{sec:evaluation}, and we conclude with final remarks in Section \ref{sec:conclusion}.
+We formally introduce the problem in Section \ref{sec:problem_formulation}, before providing all the details of our proposed double sampling method in Section \ref{sec:proposed_method}. The performance of double sampling is compared to the Thompson sampling approach in Section \ref{sec:evaluation}, and we conclude with final remarks in Section \ref{sec:conclusion}.
 
 \section{Problem formulation}
 \label{sec:problem_formulation}
@@ -552,16 +548,13 @@ We observe that double sampling provides significant regret reductions for all t
 	\label{fig:linearGaussian_relative_cumregret_kl}
 \end{figure}
 
-%\subsubsection*{Acknowledgments}
-%
-%Use unnumbered third level headings for the acknowledgments. All
-%acknowledgments go at the end of the paper. Do not include
-%acknowledgments in the anonymized submission, only in the final paper.
-
 \section{Conclusion}
 \label{sec:conclusion}
 
 We have presented a new sampling-based probability matching technique for the multi-armed bandit setting. We formulated the problem as a Bayesian sequential learning one, and leveraged random sampling to overcome two of its main challenges: approximating the analytically unsolvable integrals, and automatically balancing the exploration-exploitation tradeoff. We empirically show that additional sampling from the model can provide improved regrets, which is in many application domains inexpensive in comparison with interacting with the world. Encouraged by these findings, we aim at extending this technique to other reward distributions and implementing it with datasets from domain applications in which actions are expensive relative to samples drawn from the current model.
+
+\subsubsection*{Acknowledgments}
+This research was supported in part by NSF grant SCH-1344668. We thank Hang Su and Edward Peng Yu for their feedback and comments on this work.
 
 % Select a .bst file for the style
 \bibliographystyle{plainnat}
