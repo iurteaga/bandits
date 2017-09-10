@@ -1,0 +1,53 @@
+\begin{tikzpicture}
+	% Nodes
+	% Return y
+	\node[obs] (y-t) {$y_{t}$};
+	% Linear Gaussian parameters
+	\node[latent, above=2.75 of y-t, xshift=-2cm]  (w-ak) {$w_{a,k}$};
+	\node[latent, above=2.75 of y-t, xshift=0cm] (sigma-ak) {$\sigma_{a,k}^2$};
+	% Mixture indicator z
+	\node[latent, above=0.75 of y-t, xshift=1.5cm] (z-akt) {$z_{a,k,t}$};
+	% Mixture proportions pi
+	\node[latent, above=1.25 of z-akt, xshift=1cm] (pi-a) {$\pi_{a}$};	
+	% Action a
+	\node[latent, left=1 of y-t] (a-t) {$a_t$};
+	% Context x
+	\node[latent, below=0.5 of y-t]  (x-t) {$x_t$};
+	
+	% Hyperparameters: constants
+	% \sigma's IG hyperparameters
+	\node[const, above=0.5 of sigma-ak, xshift=-0.5cm] (tildealpha-ak) {$\widetilde{\alpha}_{a,k}$} ;
+	\node[const, above=0.5 of sigma-ak, xshift=0.5cm]  (tildebeta-ak) {$\widetilde{\beta}_{a,k}$} ;
+	
+	% \theta' N hyperparameters
+	\node[const, above=0.5 of w-ak, xshift=-0.5cm] (tildew-ak) {$\widetilde{u}_{a,k}$} ;
+	\node[const, above=0.5 of w-ak, xshift=0.5cm]  (tildeV-ak) {$\widetilde{V}_{a,k}$} ;
+	
+	% pi's Dirichlet hyperparameters
+	\node[const, above=0.5 of pi-a] (tildegamma-ak) {$\widetilde{\gamma}_{a,k}$} ;
+
+	% z's multinomial hyperparameters
+	\node[const, above=0.5 of z-akt] (r-akt) {$r_{a,k,t}$} ;
+	
+	% Edges
+	% Connect sigma hyperparameters
+	\edge {tildealpha-ak,tildebeta-ak} {sigma-ak} ;
+	% Connect theta hyperparameters
+	\edge {tildew-ak,tildeV-ak,sigma-ak} {w-ak} ;
+	% Connect mixture proportion hyperparameters
+	\edge {tildegamma-ak} {pi-a} ;
+	% Connect mixture parameters, mixture indicator, context and arm to observation
+	\edge {sigma-ak, w-ak, z-akt,x-t,a-t} {y-t} ;
+	% Connect mixture parameters to indicators
+	\edge {r-akt} {z-akt} ;
+	
+	% Plates
+	% Over time
+	\plate {t} {(a-t)(x-t)(z-akt)(y-t)(r-akt)} {$t$} ;
+	% Over each mixture and arm
+	\plate {k}{
+		(tildealpha-ak)(tildebeta-ak)(tildew-ak)(tildeV-ak)(tildegamma-ak) % hyperparameters
+		(sigma-ak)(w-ak) % parameters
+		(z-akt)(r-akt) % indicator
+		} {$K$,$A$} ;
+\end{tikzpicture}
