@@ -1,0 +1,19 @@
+%%%%%%%%%%%%%%%%%%%%%%%%
+%% Table for yahoo data with logistic bandits
+%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{table}[!h]
+	\begin{center}
+			\begin{tabular}{*{4}{|c}|}
+				\hline
+				% Header
+				\multicolumn{2}{|c|}{\multirow{2}{*}{}} & CTR\cellcolor[gray]{0.6} & Normalized CTR\cellcolor[gray]{0.6} \\ \hline
+				% table starts
+				\cellcolor[gray]{0.6} & \cellcolor[gray]{0.8} Logistic rewards, static arms & 0.0670 +/- 0.0088 & 1.6149 +/- 0.2313  \\ \cline{1-4}
+				\cellcolor[gray]{0.6} & \cellcolor[gray]{0.8} Logistic rewards, time-evolving arms & 0.0655 +/- 0.0082 & 1.5765 +/- 0.2042 \\ \cline{1-4}
+				\multicolumn{1}{c}{\multirow{-4}{*}{Model}} & \multicolumn{3}{c}{}
+			\end{tabular}
+		\caption{CTR results for SIR-based bandits on the news article recommendation data. The normalized CTR is with respect to a random baseline.}
+		\vspace*{-1cm}
+		\label{tab:yahoo_logistic_crt}
+	\end{center}
+\end{table}

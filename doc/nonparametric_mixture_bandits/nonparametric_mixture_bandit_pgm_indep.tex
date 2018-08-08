@@ -1,0 +1,37 @@
+\begin{tikzpicture}
+	% Nodes
+	% Return y
+	\node[obs] (y-t) {$y_{t}$};
+	% Nonparametric parameters
+	\node[latent, above=1.0 of y-t, xshift=0cm] (theta-a) {$\theta_{a}$};
+	% Nonparametric distribution
+	\node[latent, above=0.5 of theta-a, xshift=0cm] (G-a) {$G_{a}$};
+	% Action a
+	\node[latent, left=1 of y-t] (a-t) {$a_t$};
+	% Context x
+	\node[latent, below=0.5 of y-t]  (x-t) {$x_t$};
+	
+	% Hyperparameters
+	\node[const, above=0.5 of G-a, xshift=-1.0cm] (d-a) {$d_{a}$} ;
+	\node[const, above=0.5 of G-a, xshift=1.0cm] (gamma-a) {$\gamma_{a}$} ;
+	\node[const, above=0.5 of G-a, xshift=0.0cm]  (G-a0) {$G_{a,0}$} ;
+	
+	% Edges
+	% Hyperparameters to distribution
+	\edge {gamma-a,G-a0} {G-a} ;
+	\edge {d-a,G-a0} {G-a} ;
+	% Connect distribution to parameters
+	\edge {G-a} {theta-a} ;
+	% Connect parameters, context and arm to observation
+	\edge {theta-a,x-t,a-t} {y-t} ;
+	
+	% Plates
+	% Over time
+	\plate {t} {(a-t)(x-t)(y-t)} {$t$} ;
+	% Over each arm
+	\plate {a}{
+		(d-a)(gamma-a)(G-a0) % hyperparameters
+		(G-a) % distribution
+		(theta-a) % parameters
+	} {$A$} ;
+\end{tikzpicture}
