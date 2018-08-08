@@ -3,12 +3,12 @@
 # Imports: python modules
 # Imports: other modules
 from BanditSampling import * 
-from VariationalPosterior import *
+from MCMCPosterior import *
 
 ######## Class definition ########
-class VariationalBanditSampling(BanditSampling, VariationalPosterior):
+class MCMCBanditSampling(BanditSampling, MCMCPosterior):
     """ Class for bandits with sampling policies
-            - Variational parameter posterior updates, based on mixture model approximation to reward posteriors
+            - MCMC parameter posterior updates, based on mixture model approximation to reward posteriors
             - Bandits decide which arm to play by drawing arm candidates from a predictive arm posterior
             - Different arm-sampling approaches are considered
             - Different arm predictive density computation approaches are considered
@@ -72,14 +72,29 @@ class VariationalBanditSampling(BanditSampling, VariationalPosterior):
         if self.reward_function['type'] == 'linear_gaussian_mixture' and self.reward_prior['dist'] == 'NIG':
             # For each arm
             for a in np.arange(self.A):
-                # Data for each mixture
+                K_a=self.reward_posterior['K'][a]                    
+                # Assignment Suff statistics
+                N_ak=np.zeros(K_a)
+
+                # Rewards
                 if self.arm_predictive_policy['MC_type'] == 'MC_expectedRewards' or self.arm_predictive_policy['MC_type'] == 'MC_arms':
-                    rewards_expected_per_mixture_samples=np.zeros((self.reward_prior['K'], self.arm_predictive_policy['M']))
+                    if self.reward_prior['K'] != 'nonparametric':
+                        rewards_expected_per_mixture_samples=np.zeros((K_a, self.arm_predictive_policy['M']))
+                    elif self.reward_prior['K'] == 'nonparametric':
+                        rewards_expected_per_mixture_samples=np.zeros((K_a+1, self.arm_predictive_policy['M']))
+
                 elif self.arm_predictive_policy['MC_type'] == 'MC_rewards':
-                    rewards_per_mixture_samples=np.zeros((self.reward_prior['K'], self.arm_predictive_policy['M']))
+                    if self.reward_prior['K'] != 'nonparametric':
+                        rewards_per_mixture_samples=np.zeros((K_a, self.arm_predictive_policy['M']))
+                    elif self.reward_prior['K'] == 'nonparametric':
+                        rewards_per_mixture_samples=np.zeros((K_a+1, self.arm_predictive_policy['M']))
                     
                 # Compute for each mixture
-                for k in np.arange(self.reward_prior['K']):
+                for k in np.arange(K_a):
+                    # Number of assignments
+                    N_ak[k]=(self.reward_posterior['Z'][a]==k).sum()
+
+                    # Sampling
                     # First sample variance from inverse gamma for each mixture
                     sigma_samples=stats.invgamma.rvs(self.reward_posterior['alpha'][a,k], scale=self.reward_posterior['beta'][a,k], size=(1,self.arm_predictive_policy['M']))
                     # Then multivariate Gaussian parameters
@@ -92,11 +107,36 @@ class VariationalBanditSampling(BanditSampling, VariationalPosterior):
                         # Draw per mixture rewards given sampled parameters
                         rewards_per_mixture_samples[k,:]=self.reward_function['dist'].rvs(loc=np.einsum('d,dm->m', self.context[:,t], theta_samples), scale=np.sqrt(sigma_samples))
 
+                if self.reward_prior['K'] == 'nonparametric':
+                    # New Mixture sampling
+                    # First sample variance from inverse gamma for each mixture
+                    sigma_samples=stats.invgamma.rvs(self.reward_prior['alpha'][a], scale=self.reward_prior['beta'][a], size=(1,self.arm_predictive_policy['M']))
+                    # Then multivariate Gaussian parameters
+                    theta_samples=self.reward_prior['theta'][a,:][:,None]+np.sqrt(sigma_samples)*(stats.multivariate_normal.rvs(cov=self.reward_prior['Sigma'][a,:,:], size=self.arm_predictive_policy['M']).reshape(self.arm_predictive_policy['M'],self.d_context).T)
+                    
+                    if self.arm_predictive_policy['MC_type'] == 'MC_expectedRewards' or self.arm_predictive_policy['MC_type'] == 'MC_arms':
+                        # Compute expected reward per mixture, linearly combining context and sampled parameters
+                        rewards_expected_per_mixture_samples[-1,:]=np.dot(self.context[:,t], theta_samples)
+                    elif self.arm_predictive_policy['MC_type'] == 'MC_rewards':
+                        # Draw per mixture rewards given sampled parameters
+                        rewards_per_mixture_samples[-1,:]=self.reward_function['dist'].rvs(loc=np.einsum('d,dm->m', self.context[:,t], theta_samples), scale=np.sqrt(sigma_samples))                    
+                    
                 ## How to compute (expected) rewards over mixtures
                 # Sample Z
                 if self.arm_predictive_policy['mixture_expectation'] == 'z_sampling':
-                    # Draw Z from mixture proportions as determined by Dirichlet multinomial
-                    k_prob=self.reward_posterior['gamma'][a]/(self.reward_posterior['gamma'][a].sum())
+                    # From mixture proportions
+                    if self.reward_prior['K'] != 'nonparametric':
+                        # Dirichlet multinomial
+                        k_prob=(self.reward_prior['gamma'][a]+N_ak)/(self.reward_prior['gamma'][a].sum()+N_ak.sum())
+                    elif self.reward_prior['K'] == 'nonparametric':
+                        if self.reward_posterior['K'][a]==0:
+                            k_prob=np.array([(self.reward_prior['gamma'][a]+K_a*self.reward_prior['d'][a])/(N_ak.sum()+self.reward_prior['gamma'][a])])
+                        else:
+                            k_prob=np.concatenate(((N_ak-self.reward_prior['d'][a])/(N_ak.sum()+self.reward_prior['gamma'][a]), (self.reward_prior['gamma'][a][None]+K_a*self.reward_prior['d'][a])/(N_ak.sum()+self.reward_prior['gamma'][a])), axis=0)
+                    else:
+                        raise ValueError('Invalid reward_prior K={}'.format(self.reward_prior['K']))
+                    
+                    # Draw Z
                     z_samples=np.random.multinomial(1,k_prob, size=self.arm_predictive_policy['M']).T
 
                     if self.arm_predictive_policy['MC_type'] == 'MC_expectedRewards' or self.arm_predictive_policy['MC_type'] == 'MC_arms':
@@ -110,8 +150,19 @@ class VariationalBanditSampling(BanditSampling, VariationalPosterior):
                 
                 # Sample pi
                 elif self.arm_predictive_policy['mixture_expectation'] == 'pi_sampling':
-                    # Draw mixture proportions as determined by Dirichlet multinomial
-                    pi_samples=stats.dirichlet.rvs(self.reward_posterior['gamma'][a], size=self.arm_predictive_policy['M']).T
+                    # Dirichlet multinomial parameters
+                    if self.reward_prior['K'] != 'nonparametric':
+                        k_prob=self.reward_prior['gamma'][a]+N_ak
+                    elif self.reward_prior['K'] == 'nonparametric':
+                        if self.reward_posterior['K'][a]==0:
+                            k_prob=np.array([(self.reward_prior['gamma'][a]+K_a*self.reward_prior['d'][a])])
+                        else:
+                            k_prob=np.concatenate((N_ak-self.reward_prior['d'][a], self.reward_prior['gamma'][a][None]+K_a*self.reward_prior['d'][a]), axis=0)
+                    else:
+                        raise ValueError('Invalid reward_prior K={}'.format(self.reward_prior['K']))
+                        
+                    # Draw from Dirichlet multinomial
+                    pi_samples=stats.dirichlet.rvs(k_prob, size=self.arm_predictive_policy['M']).T
                     
                     if self.arm_predictive_policy['MC_type'] == 'MC_expectedRewards' or self.arm_predictive_policy['MC_type'] == 'MC_arms':
                         # Compute expected rewards, by averaging over sampled mixture proportions
@@ -123,7 +174,17 @@ class VariationalBanditSampling(BanditSampling, VariationalPosterior):
                 # Expected pi
                 elif self.arm_predictive_policy['mixture_expectation'] == 'pi_expected':
                     # Computed expected mixture proportions as determined by Dirichlet multinomial
-                    pi=self.reward_posterior['gamma'][a]/(self.reward_posterior['gamma'][a].sum())
+                    # From mixture proportions
+                    if self.reward_prior['K'] != 'nonparametric':
+                        # Dirichlet multinomial
+                        pi=(self.reward_prior['gamma'][a]+N_ak)/(self.reward_prior['gamma'][a].sum()+N_ak.sum())
+                    elif self.reward_prior['K'] == 'nonparametric':
+                        if self.reward_posterior['K'][a]==0:
+                            pi=np.array([(self.reward_prior['gamma'][a]+K_a*self.reward_prior['d'][a])/(N_ak.sum()+self.reward_prior['gamma'][a])])
+                        else:
+                            pi=np.concatenate(((N_ak-self.reward_prior['d'][a])/(N_ak.sum()+self.reward_prior['gamma'][a]), (self.reward_prior['gamma'][a][None]+K_a*self.reward_prior['d'][a])/(N_ak.sum()+self.reward_prior['gamma'][a])), axis=0)
+                    else:
+                        raise ValueError('Invalid reward_prior K={}'.format(self.reward_prior['K']))
                     
                     if self.arm_predictive_policy['MC_type'] == 'MC_expectedRewards' or self.arm_predictive_policy['MC_type'] == 'MC_arms':
                         # Compute expected rewards, by averaging over expected mixture proportions

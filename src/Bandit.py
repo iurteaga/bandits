@@ -2,15 +2,8 @@
 
 # Imports: python modules
 import abc
-import sys
-import copy
-import pickle
-import pdb
 import numpy as np
 import scipy.stats as stats
-import scipy.special as special
-import matplotlib.pyplot as plt
-from collections import defaultdict
 
 ######## Helper functions ########
 def online_update_mean_var(r, new_instance, this_mean, this_m2):
@@ -80,13 +73,43 @@ class Bandit(abc.ABC,object):
             a: arm to play
             t: time index (or set of indexes)
         """
+        #### REAL DATA SETS
+        # For logged datasets
+        if 'logged_data' in self.reward_function:
+            # For logged data
+            if self.reward_function['logged_arms'][t]==a:
+                # Logged data matches selected arm, return reward
+                self.rewards[a,t]=self.reward_function['logged_rewards'][t]
+            else:
+                # Logged data DOES NOT match selected arm, return NaN
+                self.rewards[a,t]=np.nan
+                
+        # Mushroom dataset based rewards
+        elif 'mushroom' in self.reward_function:
+            # For the mushroom dataset
+            # If not eating (arm 0), reward 0
+            # If eating mushroom (arm1)
+            if a==1:
+                # Default reward
+                self.rewards[a,t]=5+np.random.rand()
+                # Unless it's poisounous and with probability 0.5
+                #if self.reward_function['mushroom'][t]==1 and np.random.rand()<=0.5:
+                if self.reward_function['mushroom'][t]==1:
+                    self.rewards[a,t]=-15+np.random.rand()
 
-        if self.reward_function['dist'].name == 'bernoulli':
+        #### SIMULATED DATA SETS
+        elif self.reward_function['type'] == 'bernoulli':
             # For Bernoulli distribution: expected value is \theta
             self.rewards[a,t]=self.reward_function['dist'].rvs(self.reward_function['theta'][a])
+        
         elif self.reward_function['type'] == 'linear_gaussian':
-            # For Linear Gaussian contextual bandit, expected value is dot product of context and parameters \theta
-            self.rewards[a,t]=self.reward_function['dist'].rvs(loc=np.einsum('dt,dt->t', np.reshape(self.context[:,t], (self.d_context, t.size)), np.reshape(self.reward_function['theta'][a].T,(self.d_context, t.size))), scale=self.reward_function['sigma'][a])
+            if 'dynamics' in self.reward_function:
+                # For Linear Gaussian contextual bandit, expected value is dot product of context and parameters \theta
+                self.rewards[a,t]=self.reward_function['dist'].rvs(loc=np.einsum('dt,td->t', np.reshape(self.context[:,t], (self.d_context, t.size)), np.reshape(self.reward_function['theta'][a,:,t], (t.size, self.d_context))), scale=self.reward_function['sigma'][a])
+            else:
+                # For Linear Gaussian contextual bandit, expected value is dot product of context and parameters \theta
+                self.rewards[a,t]=self.reward_function['dist'].rvs(loc=np.einsum('dt,td->t', np.reshape(self.context[:,t], (self.d_context, t.size)), np.reshape(self.reward_function['theta'][a], (t.size, self.d_context))), scale=self.reward_function['sigma'][a])
+        
         elif self.reward_function['type'] == 'linear_gaussian_mixture':
             # First, pick mixture
                 # TODO: becaue np.random.multinomial does not implement broadcasting
@@ -96,8 +119,18 @@ class Bandit(abc.ABC,object):
                 mixture=np.zeros(t.size, dtype='int')
                 for t_idx in np.arange(t.size):
                     mixture[t_idx]=np.where(np.random.multinomial(1,self.reward_function['pi'][a][t_idx]))[0][0]
+
             # Then draw
-            self.rewards[a,t]=self.reward_function['dist'].rvs(loc=np.einsum('dt,dt->t', np.reshape(self.context[:,t], (self.d_context, t.size)), np.reshape(self.reward_function['theta'][a,mixture].T,(self.d_context, t.size))), scale=self.reward_function['sigma'][a,mixture])
+            self.rewards[a,t]=self.reward_function['dist'].rvs(loc=np.einsum('dt,td->t', np.reshape(self.context[:,t], (self.d_context, t.size)), np.reshape(self.reward_function['theta'][a,mixture], (t.size, self.d_context))), scale=self.reward_function['sigma'][a,mixture])
+        
+        elif self.reward_function['type'] == 'logistic':
+            if 'dynamics' in self.reward_function:
+                # For logistic function, we have Bernoulli distribution with expected value x^\top\theta
+                xTheta=np.einsum('dt,td->t', np.reshape(self.context[:,t], (self.d_context, t.size)), np.reshape(self.reward_function['theta'][a,:,t], (t.size, self.d_context)))
+            else:
+                # For logistic function, we have Bernoulli distribution with expected value x^\top\theta
+                xTheta=np.einsum('dt,td->t', np.reshape(self.context[:,t], (self.d_context, t.size)), np.reshape(self.reward_function['theta'][a], (t.size, self.d_context)))
+            self.rewards[a,t]=stats.bernoulli.rvs(np.exp(xTheta)/(1+np.exp(xTheta)))
         # TODO: Add other reward functions
         else:
             raise ValueError('Reward function={} not implemented yet'.format(self.reward_function))
@@ -108,16 +141,46 @@ class Bandit(abc.ABC,object):
         Args:
             None
         """
-                
-        if self.reward_function['dist'].name == 'bernoulli':
+        #### REAL DATA SETS
+        # For logged datasets
+        if 'logged_data' in self.reward_function:
+            # Allocate
+            self.true_expected_rewards=np.zeros((self.A,self.reward_function['logged_rewards'].size))
+            # TODO: does empirical mean make sense as true expected reward?
+            for a in np.arange(self.A):
+                this_a=(self.reward_function['logged_arms']==a)
+                self.true_expected_rewards[a,:]=(self.reward_function['logged_rewards'][this_a].sum())/(this_a.sum())
+
+        # Mushroom dataset based rewards
+        elif 'mushroom' in self.reward_function:
+            # For the mushroom dataset
+            # Zero reward if not eating (arm 0)
+            self.true_expected_rewards=np.zeros((2,self.reward_function['mushroom'].size))
+            # If eating mushroom (arm 0): zero reward for not eating poisounous (1), reward of 5 if eating edible (0)
+            self.true_expected_rewards[1,self.reward_function['mushroom']==0]=5
+
+        #### SIMULATED DATA SETS
+        elif self.reward_function['type'] == 'bernoulli':
             # For Bernoulli distribution: expected value is \theta
             self.true_expected_rewards=self.reward_function['theta'][:,None]*np.ones(self.rewards.shape[1])
         elif self.reward_function['type'] == 'linear_gaussian':
-            # For contextual linear Gaussian bandit, expected value is dot product of context and parameters \theta
-            self.true_expected_rewards=np.einsum('dt,ad->at', self.context, self.reward_function['theta'])
+            if 'dynamics' in self.reward_function:
+                # For contextual linear Gaussian bandit, expected value is dot product of context and parameters \theta
+                self.true_expected_rewards=np.einsum('dt,adt->at', self.context, self.reward_function['theta'])
+            else:
+                # For contextual linear Gaussian bandit, expected value is dot product of context and parameters \theta
+                self.true_expected_rewards=np.einsum('dt,ad->at', self.context, self.reward_function['theta'])
         elif self.reward_function['type'] == 'linear_gaussian_mixture':
             # For contextual linear Gaussian mixture model bandit, weighted average of each mixture's expected value
             self.true_expected_rewards=np.einsum('ak,akd,dt->at', self.reward_function['pi'], self.reward_function['theta'], self.context)
+        elif self.reward_function['type'] == 'logistic':
+            if 'dynamics' in self.reward_function:
+                # For the logistic function with 0/1 rewards the expected value
+                xTheta=np.einsum('dt,adt->at', self.context, self.reward_function['theta'])
+            else:
+                # For the logistic function with 0/1 rewards the expected value
+                xTheta=np.einsum('dt,ad->at', self.context, self.reward_function['theta'])
+            self.true_expected_rewards=np.exp(xTheta)/(1+np.exp(xTheta))
         # TODO: Add other reward functions
         else:
             raise ValueError('Reward function={} not implemented yet'.format(self.reward_function))

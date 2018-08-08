@@ -6,8 +6,8 @@ from Bandit import *
 
 ######## Class definition ########
 class BanditSampling(Bandit):
-    """ Abstract Class for bandits with sampling policies
-        These bandits decide which arm to play by drawing arm candidates from a predictive arm posterior
+    """ Abstract class for bandits with sampling policies
+            - Bandits decide which arm to play by drawing arm candidates from a predictive arm posterior
             - Different arm-sampling approaches are considered
             - Different arm predictive density computation approaches are considered
 
@@ -122,18 +122,20 @@ class BanditSampling(Bandit):
             assert context.shape[1]>=t_max, 'Not enough context provided: context.shape[1]={} while t_max={}'.format(context.shape[1],t_max)
             self.context=context
         
-        # Initialize
+        # Initialize attributes
         self.actions=np.zeros((self.A,t_max))
         self.rewards=np.zeros((self.A,t_max))
         self.rewards_expected=np.zeros((self.A,t_max))
         self.arm_predictive_density={'mean':np.zeros((self.A,t_max)), 'var':np.zeros((self.A,t_max))}
         self.arm_N_samples=np.ones(t_max)
-        # Initialize reward posterior with prior
-        self.reward_posterior=copy.deepcopy(self.reward_prior)
+
+        # Initialize reward posterior
+        self.init_reward_posterior()
         
         # Execute the bandit for each time instant
-        for t in np.arange(0,t_max):
-            print('Running time instant {}'.format(t))
+        print('Start running bandit')
+        for t in np.arange(t_max):
+            #print('Running time instant {}'.format(t))
             
             # Compute predictive density for each arm
             self.compute_arm_predictive_density(t)
@@ -153,9 +155,15 @@ class BanditSampling(Bandit):
 
             # Play selected arm
             self.play_arm(action, t)
-            # Update parameter posterior
-            self.update_reward_posterior(t)
 
+            if np.isnan(self.rewards[action,t]):
+                # This instance has not been played, and no parameter update (e.g. for logged data)
+                self.actions[action,t]=0.
+            else:
+                # Update parameter posterior
+                self.update_reward_posterior(t)
+
+        print('Finished running bandit at {}'.format(t))
         # Compute expected rewards with true function
         self.compute_true_expected_rewards()
         # Compute regret
@@ -173,7 +181,7 @@ class BanditSampling(Bandit):
             # Static number of samples
             n_samples=self.arm_predictive_policy['arm_N_samples']
         elif self.arm_predictive_policy['sampling_type'] == 'infPfa':
-            # Log of inverse of probability of other arms being optimal (prob false alarm)
+            # Function of inverse of probability of other arms being optimal (prob false alarm)
             # Optimal action estimate and its "weight"
             a_opt=self.arm_predictive_density['mean'][:,t].argmax()
             w_opt=self.arm_predictive_density['mean'][a_opt,t]
@@ -194,7 +202,7 @@ class BanditSampling(Bandit):
                 # Chebyshev's inequality
                 delta=w_opt - self.arm_predictive_density['mean'][np.arange(self.A)!=a_opt,t]
                 # Compute average of per (suboptimal) arm false alarm probability
-                p_fa=(self.arm_predictive_density['var'][np.arange(self.A)!=a_opt,t]/np.power(delta,2)).sum()/(self.A-1)
+                p_fa=(self.arm_predictive_density['var'][np.arange(self.A)!=a_opt,t]/(2*np.power(delta,2))).sum()/(self.A-1)
             else:
                 raise ValueError('Invalid Pfa computation type={}'.format(self.arm_predictive_policy['Pfa']))
             
@@ -208,11 +216,13 @@ class BanditSampling(Bandit):
             
         # return number of samples
         return n_samples
-            
+
+    @abc.abstractmethod            
     def compute_arm_predictive_density(self, t):
-        """ Compute the predictive density of each arm based on available information at time t
-            Different alternatives on computing the arm predictive density are considered
+        """ Abstract method to compute the predictive density of each arm
+            It is based on available information at time t, which depends on posterior update type
             
+            Different alternatives on computing the arm predictive density are considered            
             - Integration: Monte Carlo
                 Due to analitical intractability, resort to MC
                 MC over rewards:
@@ -230,149 +240,6 @@ class BanditSampling(Bandit):
                     - Compute the expected reward for each parameter sample
                     - Decide, for each sample, which arm is the best
                     - Compute the arm predictive density, as a Monte Carlo over best arm samples
-        Args:
-            t: time of the execution of the bandit
-        """
-        ### Data preallocation
-        if self.arm_predictive_policy['MC_type'] == 'MC_expectedRewards' or self.arm_predictive_policy['MC_type'] == 'MC_arms':
-            rewards_expected_samples=np.zeros((self.A, self.arm_predictive_policy['M']))
-        elif self.arm_predictive_policy['MC_type'] == 'MC_rewards':
-            rewards_samples=np.zeros((self.A, self.arm_predictive_policy['M']))
-        else:
-            raise ValueError('Arm predictive density computation type={} not implemented yet'.format(self.arm_predictive_policy['MC_type']))
-       
-        ### Sample reward's parameters, given updated hyperparameters
-        # Bernoulli bandits with beta prior
-        if self.reward_function['dist'].name == 'bernoulli' and self.reward_prior['dist'].name == 'beta':
-            # Draw Bernoulli parameters
-            reward_params_samples=self.reward_posterior['dist'].rvs(self.reward_posterior['alpha'], self.reward_posterior['beta'], size=(self.A,self.arm_predictive_policy['M']))
-            
-            if self.arm_predictive_policy['MC_type'] == 'MC_expectedRewards' or self.arm_predictive_policy['MC_type'] == 'MC_arms':
-                # Compute expected rewards of sampled parameters
-                rewards_expected_samples=reward_params_samples
-            elif self.arm_predictive_policy['MC_type'] == 'MC_rewards':
-                # Draw rewards given sampled parameters
-                rewards_samples=self.reward_function['dist'].rvs(reward_params_samples)
-                
-        # Contextual Linear Gaussian bandits with NIG prior
-        elif self.reward_function['type'] == 'linear_gaussian' and self.reward_prior['dist'] == 'NIG':
-            # For each arm
-            for a in np.arange(self.A):
-                # First draw variance samples from inverse gamma
-                sigma_samples=stats.invgamma.rvs(self.reward_posterior['alpha'][a], scale=self.reward_posterior['beta'][a], size=(1,self.arm_predictive_policy['M']))
-                # Then multivariate Gaussian parameters
-                reward_params_samples=self.reward_posterior['theta'][a,:][:,None]+np.sqrt(sigma_samples)*(stats.multivariate_normal.rvs(cov=self.reward_posterior['Sigma'][a,:,:], size=self.arm_predictive_policy['M']).reshape(self.arm_predictive_policy['M'],self.d_context).T)
-            
-                if self.arm_predictive_policy['MC_type'] == 'MC_expectedRewards' or self.arm_predictive_policy['MC_type'] == 'MC_arms':
-                    # Compute expected rewards, linearly combining context and sampled parameters
-                    rewards_expected_samples[a,:]=np.dot(self.context[:,t], reward_params_samples)
-                elif self.arm_predictive_policy['MC_type'] == 'MC_rewards':
-                    # Draw rewards given sampled parameters and context
-                    rewards_samples[a,:]=self.reward_function['dist'].rvs(loc=np.einsum('d,dm->m', self.context[:,t], reward_params_samples), scale=np.sqrt(sigma_samples))
-                
-        # Contextual Linear Gaussian mixture bandits with NIG prior
-        elif self.reward_function['type'] == 'linear_gaussian_mixture' and self.reward_prior['dist'] == 'NIG':
-            # For each arm
-            for a in np.arange(self.A):
-                # Data for each mixture
-                if self.arm_predictive_policy['MC_type'] == 'MC_expectedRewards' or self.arm_predictive_policy['MC_type'] == 'MC_arms':
-                    rewards_expected_per_mixture_samples=np.zeros((self.reward_prior['K'], self.arm_predictive_policy['M']))
-                elif self.arm_predictive_policy['MC_type'] == 'MC_rewards':
-                    rewards_per_mixture_samples=np.zeros((self.reward_prior['K'], self.arm_predictive_policy['M']))
-                    
-                # Compute for each mixture
-                for k in np.arange(self.reward_prior['K']):
-                    # First sample variance from inverse gamma for each mixture
-                    sigma_samples=stats.invgamma.rvs(self.reward_posterior['alpha'][a,k], scale=self.reward_posterior['beta'][a,k], size=(1,self.arm_predictive_policy['M']))
-                    # Then multivariate Gaussian parameters
-                    theta_samples=self.reward_posterior['theta'][a,k,:][:,None]+np.sqrt(sigma_samples)*(stats.multivariate_normal.rvs(cov=self.reward_posterior['Sigma'][a,k,:,:], size=self.arm_predictive_policy['M']).reshape(self.arm_predictive_policy['M'],self.d_context).T)
-                    
-                    if self.arm_predictive_policy['MC_type'] == 'MC_expectedRewards' or self.arm_predictive_policy['MC_type'] == 'MC_arms':
-                        # Compute expected reward per mixture, linearly combining context and sampled parameters
-                        rewards_expected_per_mixture_samples[k,:]=np.dot(self.context[:,t], theta_samples)
-                    elif self.arm_predictive_policy['MC_type'] == 'MC_rewards':
-                        # Draw per mixture rewards given sampled parameters
-                        rewards_per_mixture_samples[k,:]=self.reward_function['dist'].rvs(loc=np.einsum('dt,d->t', self.context[:,t], theta_samples), scale=np.sqrt(sigma_samples))
-
-                ## How to compute (expected) rewards over mixtures
-                # Sample Z
-                if self.arm_predictive_policy['mixture_expectation'] == 'z_sampling':
-                    # Draw Z from mixture proportions as determined by Dirichlet multinomial
-                    k_prob=self.reward_posterior['gamma'][a]/(self.reward_posterior['gamma'][a].sum())
-                    z_samples=np.random.multinomial(1,k_prob, size=self.arm_predictive_policy['M']).T
-
-                    if self.arm_predictive_policy['MC_type'] == 'MC_expectedRewards' or self.arm_predictive_policy['MC_type'] == 'MC_arms':
-                        # Compute expected rewards, for each of the picked mixture
-                        # Note: transposed used due to python indexing
-                        rewards_expected_samples[a,:]=rewards_expected_per_mixture_samples.T[z_samples.T==1]
-                    elif self.arm_predictive_policy['MC_type'] == 'MC_rewards':
-                        # Draw rewards for each of the picked mixture
-                        # Note: transposed used due to python indexing
-                        rewards_samples[a,:]=rewards_per_mixture_samples.T[z_samples.T==1]
-                
-                # Sample pi
-                elif self.arm_predictive_policy['mixture_expectation'] == 'pi_sampling':
-                    # Draw mixture proportions as determined by Dirichlet multinomial
-                    pi_samples=stats.dirichlet.rvs(self.reward_posterior['gamma'][a], size=self.arm_predictive_policy['M']).T
-                    
-                    if self.arm_predictive_policy['MC_type'] == 'MC_expectedRewards' or self.arm_predictive_policy['MC_type'] == 'MC_arms':
-                        # Compute expected rewards, by averaging over sampled mixture proportions
-                        rewards_expected_samples[a,:]=np.einsum('km,km->m', pi_samples, rewards_expected_per_mixture_samples)
-                    elif self.arm_predictive_policy['MC_type'] == 'MC_rewards':
-                        # Draw rewards given sampled parameters
-                        rewards_samples[a,:]=np.einsum('km,km->m', pi_samples, rewards_per_mixture_samples)
-                        
-                # Expected pi
-                elif self.arm_predictive_policy['mixture_expectation'] == 'pi_expected':
-                    # Computed expected mixture proportions as determined by Dirichlet multinomial
-                    pi=self.reward_posterior['gamma'][a]/(self.reward_posterior['gamma'][a].sum())
-                    
-                    if self.arm_predictive_policy['MC_type'] == 'MC_expectedRewards' or self.arm_predictive_policy['MC_type'] == 'MC_arms':
-                        # Compute expected rewards, by averaging over expected mixture proportions
-                        rewards_expected_samples[a,:]=np.einsum('k,km->m', pi, rewards_expected_per_mixture_samples)
-                    elif self.arm_predictive_policy['MC_type'] == 'MC_rewards':
-                        # Draw rewards, by averaging over expected mixture proportions
-                        rewards_samples[a,:]=np.einsum('k,km->m', pi, rewards_per_mixture_samples)
-                else:
-                    raise ValueError('Arm predictive mixture expectation computation type={} not implemented yet'.format(self.arm_predictive_policy['mixture_expectation']))
-
-        # TODO: Add other reward function/prior combinations
-        else:
-            raise ValueError('reward_function={} with reward_prior={} not implemented yet'.format(self.reward_function['dist'].nameself.reward_prior['dist'].name))
-        
-        ### Compute arm predictive density
-        if self.arm_predictive_policy['MC_type'] == 'MC_rewards':
-            # Monte Carlo integration over reward samples
-            # Mean times reward is maximum
-            self.arm_predictive_density['mean'][:,t]=((rewards_samples.argmax(axis=0)[None,:]==np.arange(self.A)[:,None]).astype(int)).mean(axis=1)
-            # Variance of times reward is maximum
-            self.arm_predictive_density['var'][:,t]=((rewards_samples.argmax(axis=0)[None,:]==np.arange(self.A)[:,None]).astype(int)).var(axis=1)
-            # Also, compute expected rewards
-            self.rewards_expected[:,t]=rewards_samples.mean(axis=1)
-            
-        elif self.arm_predictive_policy['MC_type'] == 'MC_expectedRewards':
-            # First, compute expectation over rewards
-            self.rewards_expected[:,t]=rewards_expected_samples.mean(axis=1)
-            
-            # Then, Monte Carlo integration over expected reward
-            # Arm for which expected reward is maximum
-            self.arm_predictive_density['mean'][:,t]=(self.rewards_expected[:,t].argmax(axis=0)==np.arange(self.A)).astype(int)
-            # No variance 
-            self.arm_predictive_density['var'][:,t]=0
-        elif self.arm_predictive_policy['MC_type'] == 'MC_arms':
-            # Monte Carlo integration over arm samples
-            # Mean times expected reward is maximum
-            self.arm_predictive_density['mean'][:,t]=((rewards_expected_samples.argmax(axis=0)[None,:]==np.arange(self.A)[:,None]).astype(int)).mean(axis=1)
-            # Variance of times expected reward is maximum
-            self.arm_predictive_density['var'][:,t]=((rewards_expected_samples.argmax(axis=0)[None,:]==np.arange(self.A)[:,None]).astype(int)).var(axis=1)
-            # Also, compute expected rewards            
-            self.rewards_expected[:,t]=rewards_expected_samples.mean(axis=1)
-        else:
-            raise ValueError('Arm predictive density computation type={} not implemented yet'.format(self.arm_predictive_policy['MC_type']))
-        
-    @abc.abstractmethod           
-    def update_reward_posterior(self, t):
-        """ Update the posterior of the reward density, based on available information at time t
         Args:
             t: time of the execution of the bandit
         """
