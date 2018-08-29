@@ -131,11 +131,13 @@ Bayesian modeling of the MAB problem facilitates not only generative and interpr
 
 We here introduce sampling methods, which extend the applicability of Bayesian MAB algorithms by permitting more complex models: those for which sampling may be performed even if analytic computation of summary statistics is infeasible. This approach complements the variational approach \cite{b-Bishop2006}, recently proposed for both general reinforcement learning problems \cite{ip-Blundell2015, j-Lipton2016}, and posterior sampling-based algorithms as well \cite{ip-Lamprier2017,ip-Urteaga2018}. Variational inference provides a very general method for approximating generative models, but does not provide optimality guarantees.
 
-We focus on importance sampling (IS) methods, which are a general technique for estimating properties of a distribution, using only samples generated from a different distribution. These methods are used to estimate posterior densities or expectations in problems with probabilistic models that are too complex to treat analytically. Furthermore, they are the foundation of sequential Monte Carlo (SMC) methods \cite{j-Arulampalam2002,b-Doucet2001,j-Djuric2003}, which have been successful in many applications of science and engineering \cite{b-Ristic2004,j-Leeuwen2009,j-Ionides2006,j-Creal2012}. These methods require that one can evaluate the likelihood of the observations up to a proportionality constant, and furthermore, they provide tight convergence guarantees under general assumptions \cite{j-Crisan2002,j-Chopin2004}.
+We focus on importance sampling (IS) methods, which are a general technique for estimating properties of a distribution, using only samples generated from a different distribution. These methods are used to estimate posterior densities or expectations in problems with probabilistic models that are too complex to treat analytically. Furthermore, they are the foundation of sequential Monte Carlo (SMC) methods \cite{j-Arulampalam2002,b-Doucet2001,j-Djuric2003}, which have been successful in many applications of science and engineering \cite{b-Ristic2004,j-Leeuwen2009,j-Ionides2006,j-Creal2012}. These methods provide tight convergence guarantees under general assumptions \cite{j-Crisan2002,j-Chopin2004}.
 
 Our contribution is unique to the MAB problem in that we provide a SIS-based MAB method that (i) approximates the posterior densities of interest via random measures; (ii) requires knowledge of the reward function only up to a proportionality constant; and (iii) is applicable to time-varying parameter models, \ie dynamic bandits. 
 
-Our work extends existing MAB policy algorithms beyond their original settings by leveraging the advances in SMC methods from the approximate inference community. The goal is to provide a flexible framework for solving a rich class of MAB problems, such as dynamic bandits, for which we are not aware of other general alternatives.
+Our work extends existing MAB policy algorithms beyond their original settings by leveraging the advances in SMC methods from the approximate inference community. \citet{j-Cherkassky2013} also consider the use of SMC methods for the MAB setting, by applying it to Thompson sampling with a probit reward model. In our work, we combine SMC both for Thompson sampling and upper confident bound-based policies, and cover a few more different reward models (\eg Gaussian linear and logistic).
+
+More importantly, our goal is to provide a flexible framework for solving a rich class of MAB problems, such as dynamic bandits. We study the general linear dynamical system (which recovers the Kalman filter when the parameters are known), and provide the solution for the more interesting unknown parameter case (by combining Rao-Blackwellization and SMC methods).
 
 We formally introduce the MAB problem and SIS methods in Section~\ref{sec:problem_statement}, before providing the description of the proposed SIS based MAB framework in Section~\ref{sec:proposed_framework}. We evaluate its performance for Thompson sampling and Bayes-UCB based policies in Section~\ref{sec:evaluation}, and conclude with promising research directions suggested by these results in Section~\ref{sec:conclusion}.
 
@@ -381,7 +383,7 @@ We describe here how the proposed SIR-based algorithm operates in terms of likel
 
 These are bandits where there are no time-varying parameters: \ie $\theta_t=\theta, \forall t$. For these settings, SIR-based parameter propagation becomes troublesome \cite{b-Liu2001}, and to mitigate such issues, several alternatives have been proposed in the SMC community: artificial parameter evolution \cite{j-Gordon1993}, kernel smoothing \cite{b-Liu2001}, and density assisted techniques \cite{ip-Djuric2004}.
 
-We resort to density assisted importance sampling\footnote{We acknowledge that any of the more advanced SMC techniques that mitigate the challenges of estimating constant parameters (\eg parameter smoothing \cite{j-Carvalho2010,j-Olsson2006,j-Olsson2014} or nested SMC methods \cite{j-Chopin2011,j-Crisan2013}) can only improve the accuracy of the proposed method.}, where one approximates the posterior of the unknown parameters with a density of choice. Density assisted importance sampling is a well studied SMC approach that extends random-walking and kernel-based alternatives \cite{j-Gordon1993, ib-Liu2001, ip-Djuric2004}, with its asymptotic correctness guaranteed for the static parameter case.
+We resort to density assisted importance sampling, rather than to kernel based particle filters as implemented in \cite{j-Cherkassky2013}, where one approximates the posterior of the unknown parameters with a density of choice. Density assisted importance sampling is a well studied SMC approach\footnote{We acknowledge that any of the more advanced SMC techniques that mitigate the challenges of estimating constant parameters (\eg parameter smoothing \cite{j-Carvalho2010,j-Olsson2006,j-Olsson2014} or nested SMC methods \cite{j-Chopin2011,j-Crisan2013}) can only improve the accuracy of the proposed method.} that extends random-walking and kernel-based alternatives \cite{j-Gordon1993, ib-Liu2001, ip-Djuric2004}, with its asymptotic correctness guaranteed for the static parameter case.
 
 Specifically, we approximate the posterior of the unknown parameters $\theta$, given the current state of knowledge, with a Gaussian distribution $p(\theta_a|\HH_{1:t}) \approx \N{\theta_a|\hat{\theta}_{a,t}, \hat{C}_{\theta_{a,t}}}$. The sufficient statistics are computed based on samples and weights of the random measure $p_M(\theta_{a,t})=\sum_{m=1}^M w_{t}^{(m)} \delta\left(\theta_{a,t}-\theta_{a,t}^{(m)}\right)$ available at each time instant:
 \begin{equation}
@@ -468,7 +470,7 @@ We first compare the performance of Algorithm~\ref{alg:sir-mab} to Thompson samp
 
 \begin{figure}[!h]
 	\begin{center}
-		\centerline{\includegraphics[width=\columnwidth]{./figs/static/linearGaussian/cumulative_regret_all}}
+		\centerline{\includegraphics[width=\textwidth]{./figs/static/linearGaussian/cumulative_regret_all}}
 		\caption{Mean regret for the contextual linear-Gaussian bandit $\theta_0=(-1,-1),\theta_1=(1,1)$ with unknown reward variance $\sigma^2=0.5$ and random contexts.}
 		\label{fig:static_bandits_linearGaussian_all}
 	\end{center}
@@ -476,9 +478,7 @@ We first compare the performance of Algorithm~\ref{alg:sir-mab} to Thompson samp
 \end{figure}
 
 Note the increased uncertainty due to the MC approximation to the posterior, which finds its analytical justification in Eqn.~\eqref{eq:is_convergence}, and can be empirically reduced by increasing the number $M$ of IS samples used (see the impact of sample size $M$ in figures included in
-\ifx\addappendix\undefined the supplementary material \else \autoref{asec:evaluation}\fi).
-
-$M=1000$ samples suffice in all our experiments for accurate estimation of parameter posteriors. Advanced and dynamic determination of SIR sample size is an active research area within the SMC community, but out of the scope of this paper.
+\ifx\addappendix\undefined the supplementary material \else \autoref{asec:evaluation}\fi). $M=1000$ samples suffice in all our experiments for accurate estimation of parameter posteriors. Advanced and dynamic determination of SIR sample size is an active research area within the SMC community, but out of the scope of this paper.
 
 We also evaluate a more realistic scenario for the contextual linear-Gaussian case with unknown reward variance $\sigma^2$ in Fig.~\ref{fig:static_bandits_linearGaussian_all}, where SIR-based approaches are shown to be competitive as well. We reiterate that results are satisfactory across a wide range of parameterizations and bandit sizes (results for extensive evaluations are provided in \ifx\addappendix\undefined the supplementary material \else \autoref{asec:evaluation} \fi), which validate the accuracy of the proposed SIR-based method.
 
@@ -504,9 +504,7 @@ Our proposed SIR-based framework is readily applicable, as one only needs to eva
 	\label{fig:static_bandits_logistic}
 \end{figure}
 
-These results indicate that the impact of only observing rewards of the played arms is minimal for the proposed SIR-based method. The parameter posterior uncertainty associated with the SIR-based estimation is automatically accounted for by both algorithms, as they explore rarely-played arms if the uncertainty is high.
-
-However, we do observe a slight performance deterioration of Bayes-UCB, which we argue is related to the quantile value used ($\alpha_t\propto1/t$). It was analytically justified by Kaufmann \cite{ip-Kaufmann2012} for Bernoulli rewards, but might not be optimal for other reward functions and, more importantly, for the SIR-based approximation to parameter posteriors.
+These results indicate that the impact of only observing rewards of the played arms is minimal for the proposed SIR-based method. The parameter posterior uncertainty associated with the SIR-based estimation is automatically accounted for by both algorithms, as they explore rarely-played arms if the uncertainty is high. However, we do observe a slight performance deterioration of Bayes-UCB, which we argue is related to the quantile value used ($\alpha_t\propto1/t$). It was analytically justified by Kaufmann \cite{ip-Kaufmann2012} for Bernoulli rewards, but might not be optimal for other reward functions and, more importantly, for the SIR-based approximation to parameter posteriors.
 
 On the contrary, Thompson sampling is more flexible, automatically adjusting to the uncertainty of the posterior approximation, and thus, attaining reduced regret.
 
@@ -613,7 +611,6 @@ We argue that the shrinking quantile value $\alpha_t\propto1/t$ explains this be
 
 On the contrary, Thompson sampling does not require any parameter tweaking. It relies on samples from the posterior, which SIR is able to approximate accurately enough for it to operate successfully, even in the most challenging MAB scenarios as in Figs.~\ref{fig:dynamic_bandits_linearGaussian_dunknown} and \ref{fig:dynamic_bandits_logistic}.
 
-\pagebreak
 Due to the Bayesian approach to MAB, our proposed SIR-based Thompson sampling not only estimates the evolving parameters $\theta_t$, but also their corresponding uncertainty. As such, both when a given arm's dynamics are unclear, or when an arm is not sampled for a while, the uncertainty of its estimated posterior grows. As a result, Thompson sampling is more likely to explore that arm again, in order to achieve the right exploration-exploitation balance, as shown in our results.
 
 \subsection{Bandits for personalized news article recommendation}
@@ -630,16 +627,17 @@ We treat each article as an arm ($A=20$), and the logged reward is whether the a
 One may further hypothesize that the news recommendation system should evolve over time, as the relevance of news might change during the course of the day. As a matter of fact, our proposed framework readily accommodates these assumptions.
 
 We consider both static and dynamic bandits with logistic rewards, and implement the proposed SIR-based Thompson sampling, due to its flexibility and the lack of parameter tuning required. Summary CTR results are provided in Table \ref{tab:yahoo_logistic_crt}. Observe the flexibility of the dynamic bandit, which is able to pick up the dynamic popularity of certain articles over time (see Fig. \ref{fig:yahoo_logistic_dynamic}).
-\input{table_yahoo_logistic} 
 
-\begin{figure}[!h]
+
+\begin{figure}[!hb]
 	\centering
 	\includegraphics[width=0.95\textwidth]{./figs/yahoo/yahoo_logistic_dynamic}
 	\caption{Empirical probability of SIR-based contextual dynamic logistic Thompson sampling policy picking each arm over time. Notice how the algorithm captures the changing popularity of articles over time.}
 	\label{fig:yahoo_logistic_dynamic}
 \end{figure}
 
-\clearpage
+\input{table_yahoo_logistic}
+
 \section{Conclusion}
 \label{sec:conclusion}
 
@@ -652,6 +650,7 @@ The implementation of the proposed method is available in \href{https://github.c
 
 \subsubsection*{Acknowledgments}
 This research was supported in part by NSF grant SCH-1344668.
+We thank Luke Bornn for bringing \cite{j-Cherkassky2013}  to our attention.
 
 % Generate bibliography from the specified bibliography file
 \bibliography{../literature}
