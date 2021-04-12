@@ -1,0 +1,45 @@
+% !TEX root = main.tex
+
+We evaluate the proposed nonparametric Gaussian mixture model based Thompson sampling (\ie \texttt{Nonparametric TS} as in Algorithm~\ref{alg:nonparametric_ts}) in diverse and complex synthetic datasets, for which practical methods that balance exploration and exploitation remain elusive.
+Our goal is two-pronged:
+\begin{enumerate}
+	\item To compare the proposed \texttt{Nonparametric TS} algorithm to state-of-the-art alternatives (described in Section~\ref{ssec:ts_baselines}), showcasing its flexibility, generality and how it attains reduced regret in complex multi-armed bandits ---Section~\ref{ssec:evaluation_baselines}.
+	\item To demonstrate that its performance is equivalent to an Oracle (\ie one that knows the true underlying model class) that implements a Thompson sampling policy ---Section~\ref{ssec:evaluation_oracle}.
+\end{enumerate}
+
+% State-of-the-art baselines
+\input{evaluation_baselines}
+
+\subsection{Complex contextual bandits: reduced regret under model uncertainty}
+\label{ssec:evaluation_baselines}
+
+Our proposed nonparametric Thompson sampling is valuable for MAB scenarios in the presence of model uncertainty.
+In the following, we show that \texttt{Nonparametric TS}, while avoiding case-by-case reward model design choices and bypassing model mispecification, attains reduced regret across a variety of bandit scenarios.
+
+To that end, we evaluate its performance under different reward settings: in Section~\ref{sssec:evaluation_contextual_linear_baselines}, contextual linear Gaussian bandits~\footnote{Results for non-contextual Gaussian bandits are provided in Section~\ref{asec:noncontextual_gaussian_bandits} of the Appendix, showcasing how the proposed method attains satisfactory performance.}, and in Section~\ref{sssec:evaluation_mixture_scenarios_baselines} contextual bandits with rewards not in the exponential family.
+
+% contextual linear Gaussian bandits
+\input{evaluation_contextual_linear_baselines}
+
+% Not-exponential contextual bandits
+\input{evaluation_mixture_scenarios_baselines}
+
+\subsection{Nonparametric TS compared to Oracle TS}
+\label{ssec:evaluation_oracle}
+
+In the previous section, we showed that the proposed \texttt{Nonparametric TS} outperforms state-of-the-art Thompson sampling alternatives.
+Our aim now is to determine how optimal the proposed nonparametric Bayesian based technique is.
+
+To fully reveal the flexibility the proposed method, we scrutinize the \texttt{Nonparametric TS} algorithm by comparing it to \texttt{Oracle TS} algorithms: \ie Oracles that know the true per-arm reward distributions of the bandit they are targeted to.
+
+This is an unrealistic setting in practice, yet possible in a simulated environment, as knowing the reward complexity of a MAB beforehand is impractical~\footnote{An alternative would be to run multiple model assumptions in parallel, with a subsequent model selection.}.
+
+We implement \texttt{Oracle TS} algorithms for each simulated contextual bandit setting. Results below demonstrate how, due to the flexible and general density estimation technique provided by Bayesian nonparametric models, the per-arm nonparametric posterior densities converge to the true unknown distribution, allowing for our \texttt{Nonparametric TS} method to incur in minimal additional regret when compared to \texttt{Oracle TS} alternatives in all the studied scenarios.
+
+% contextual linear Gaussian bandits
+\input{evaluation_contextual_linear_oracle}
+
+% Not-exponential contextual bandits
+\input{evaluation_mixture_scenarios_oracle}
+
+We conclude by emphasizing that the proposed \texttt{Nonparametric TS} avoids stringent case-by-case model assumptions for each specific MAB setting, yet attains competitive regret when faced with distinct, complex MAB reward distributions: the same algorithm (with no hyperparameter tuning) is run for contextual Gaussian bandits and other complex (not in the exponential family) multi-armed bandits.

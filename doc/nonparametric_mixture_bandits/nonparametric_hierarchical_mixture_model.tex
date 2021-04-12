@@ -1,0 +1,64 @@
+\section{Nonparametric hierarchical mixture model bandit}
+\label{asec:nonparametric_hierarchical_mixture_model}
+
+An alternative MAB model, where each arm is drawn from the same base distribution, is to consider a hierarchical Pitman-Yor mixture model. The generative process of a hierarchical Pitman-Yor mixture model follows:
+
+\begin{enumerate}
+\item $G_0 \sim PY(\eta,\gamma_0, H)$.
+\item $G_a \sim PY(d,\gamma,G_0)$, for $a \in \mathcal{A}$.
+\item $\varphi_{a,n+1} \sim G_a$, that is
+\begin{equation}
+\hspace*{-2ex}
+\begin{cases}
+m_{a,l}|m_{a,1:l-1},\gamma_0, H \sim \sum_{k=1}^{K} \frac{M_{k}-\eta}{M+\gamma_0}\delta_{\varphi_k}+\frac{\gamma_0+K\eta}{M+\gamma_0}H \;, \\
+\varphi_{a,n+1}|\varphi_{a,1:n_a}, d, \gamma, G_0 \sim \sum_{l=1}^{L_a} \frac{n_{a,l}-d}{n_a+\gamma}\delta_{\varphi_{m_{a,l}}}+\frac{\gamma+L_a d}{n_a+\gamma}G_0
+\end{cases}
+\end{equation}
+where $m_{a,l}$ refers to the per-arm $a \in \mathcal{A}$ assignments to local mixands $l_a \in \mathcal{L}_a$, each with mixture assignment $k \in \mathcal{K}$, now shared across arms. That is, there is a global mixture with $K$ mixands for the bandit, but each per-arm distribution consists of a subset of $\mathcal{L}_a \in K$ mixands.
+\item The $n+1$th observation $y_{n+1}$ is drawn from the emission distribution parameterized by the parameters of its corresponding mixture component $Y_{n+1}|\varphi_{a,n+1} \sim p(Y|\varphi_{a,n+1})$.
+\end{enumerate}
+For parametric measures, we write $H_0(\varphi)=H(\varphi|\varPhi_0)$ and $H_n(\varphi)=H(\varphi|\varPhi_n)$, where $\varPhi_0$ are the prior hyperparameters of the emission distribution, and $\varPhi_n$ the posterior parameters after $n$ observations, respectively.
+Note again that the hierarchical Dirichlet process is a particular case of the above with $d=0$.
+
+The Gibbs sampler for inference of the above model after observations $y_{1:n}$ relies on the conditional distribution of observation assignments $c_{a,n}$ to local mixands $l \in \mathcal{L}_a$, 
+\begin{equation}
+\begin{cases}
+p(c_{a,n+1}=l|y_{a,n+1},y_{a,1:n},c_{a,1:n}, \gamma, \gamma_0,H) \\
+\hspace*{0.3\columnwidth}  \propto \frac{n_{a,l}-d}{n_a+\gamma} \int_{\varphi} p(y_{a,n+1}|\varphi_{m_{a,l}}) H_{n}(\varphi) \dd{\varphi}\\
+p(c_{a,n+1}=l_{new}|y_{a,n+1},y_{a,n},c_{a,1:n},\gamma, \gamma_0, H) \\
+\hspace*{0.3\columnwidth} \propto \frac{\gamma+Kd}{n_a+\gamma} \int_{\varphi} p(y_{a,n+1}|\varphi_{m_{a,l_{new}}}) H(\varphi) \dd{\varphi}\\
+\hspace*{0.3\columnwidth} \propto \frac{\gamma+Kd}{n_a+\gamma} \left[ \sum_{k=1}^{K} \frac{M_{k}-\eta}{M+\gamma_0}\int_{\varphi} p(y_{a,n+1}|\varphi_{k}) H_{n}(\varphi) \dd{\varphi} \right. \\
+\hspace*{0.35\columnwidth}\left. + \frac{\gamma_0 +K\eta}{M+\gamma_0} \int_{\varphi} p(y_{a,n+1}|\varphi_{k_{new}}) H(\varphi) \dd{\varphi} \right]\\
+\end{cases}
+\end{equation}
+and mixture assignments $m_{a,l}$ for a local mixand $l\in \mathcal{L}_a$:
+\begin{equation}
+\begin{cases}
+p(m_{a,l}=k|y_{1:n},c_{n \backslash n_{a,l}}, \gamma_0, H) \propto \frac{M_{k}-\eta}{M+\gamma_0} \int_{\varphi} p(Y_{a,l}|\varphi_{k}) H_{n \backslash n_{a,l}}(\varphi) \dd{\varphi}\\
+p(m_{a,l}=k_{new}|y_{1:n},c_{n \backslash n_{a,l}}\gamma_0, H) \propto \frac{\gamma_0+K\eta}{M+\gamma_0} \int_{\varphi} p(Y_{a,l}|\varphi_{k_{new}}) H(\varphi) \dd{\varphi}
+\end{cases}
+\end{equation}
+\begin{equation}
+\begin{cases}
+p(m_{a,l_{new}}=k|y_{a,n+1},y_{a,1:n},c_{a,1:n}, \gamma_0, H) \\
+\hspace*{0.3\columnwidth} \propto \frac{M_{k}-\eta}{M+\gamma_0} \int_{\varphi} p(y_{a,n+1}|\varphi_{k}) H_{n}(\varphi) \dd{\varphi}\\
+p(m_{a,l_{new}}=k_{new}|y_{a,n+1},y_{a,1:n},c_{a,1:n},\gamma_0, H) \\
+\hspace*{0.3\columnwidth} \propto \frac{\gamma_0+K\eta}{M+\gamma_0} \int_{\varphi} p(y_{a,n+1}|\varphi_{k_{new}}) H(\varphi) \dd{\varphi}\\
+\end{cases}
+\end{equation}
+where $n \backslash n_{a,l}$ refers to all observations but those assigned to local mixand $l$ in arm $a$, $M_k$ are the number of local mixands assigned to global mixture component $k$, and $M=\sum_{k=1}^K M_k$.
+
+The alternative nonparametric MAB considers the above hierarchical nonparametric model, where all arms are assumed to obey the same family of distributions, but only their mixture proportions vary across arms, as illustrated in Figure~\ref{afig:pgm_nonparametric_bandit_hierarchical}.
+The main advantage of this alternative is that one learns per-mixture parameter posteriors based on rewards of all played arms, with the disadvantage of all arms of the bandit being of the same family of reward distributions.
+
+% Hierarchical nonparametric bandit graphical model
+\begin{figure}[!h]
+\centering
+\begin{center}
+	\input{nonparametric_mixture_bandit_pgm_hierarchy_horizontal}
+\end{center}
+\vspace*{-2ex}
+\caption{Graphical model of the hierarchical nonparametric mixture bandit distribution.}
+\label{afig:pgm_nonparametric_bandit_hierarchical}
+\vspace*{-2ex}
+\end{figure}

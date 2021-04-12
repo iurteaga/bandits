@@ -1,0 +1,90 @@
+%%%% iurteaga definitions and macros
+% Dolor definitions
+%\def\bluecolor#1{\textcolor[rgb]{0,0,1}{\bf #1}}
+%\def\greencolor#1{\textcolor[rgb]{0,1,0}{\bf #1}}
+%\def\redcolor#1{\textcolor[rgb]{1,0,0}{\bf #1}}
+
+% TODO
+\newcommand{\TODO}[1]{\textcolor{red}{TODO: #1}}
+
+% Abbreviations
+\newcommand{\iid}{i.i.d. }
+\newcommand{\ie}{i.e., }
+\newcommand{\Ie}{I.e., }
+\newcommand{\eg}{e.g., }
+\newcommand{\Eg}{E.g., }
+\newcommand{\etAl}{et al.\xspace}
+
+% Real line
+\newcommand{\Real}{{\mathbb R}} 
+% Natural numbers
+\newcommand{\Natural}{{\mathbb N}} 
+
+% Probability related
+\newcommand{\Prob}[1]{\mathbb{P}\left( #1 \right)}
+% with 2 arguments, for probability model in subscript
+\newcommand{\myProb}[2]{\mathbb{P}_{#1}\left( #2 \right)}
+%Expected value
+\newcommand{\eValue}[2]{\mathbb{E}_{#1}\left\{ #2 \right\}}
+\newcommand{\Var}[1]{\mathbb{V}\mathrm{ar} \left\{ #1 \right\}}
+\newcommand{\indep}{{\;\bot\!\!\!\!\!\!\bot\;}}
+% Kullback-Leibler
+\newcommand{\KL}[2]{\mathrm{KL}\left( #1 \| #2\right)}
+% Distributions
+\newcommand{\N}[1]{\mathcal{N}\left( #1\right)}
+\newcommand{\MN}[1]{\mathcal{MN}\left( #1\right)}
+\newcommand{\T}[1]{\mathcal{T}\left( #1\right)}
+\newcommand{\MT}[1]{\mathcal{MT}\left( #1\right)}
+\newcommand{\Dir}[1]{\mathcal{Dir}\left( #1\right)}
+\newcommand{\Mult}[1]{{\rm Mult}\left( #1\right)}
+\newcommand{\Cat}[1]{{\rm Cat}\left( #1\right)}
+\newcommand{\Bin}[1]{{\rm Bin}\left( #1\right)}
+\newcommand{\IG}[1]{\mathcal{IG}\left( #1\right)}
+\newcommand{\NIG}[1]{\mathcal{NIG}\left( #1\right)}
+\newcommand{\NIX}[1]{\mathcal{NIX}\left( #1\right)}
+\newcommand{\IW}[1]{\mathcal{IW}\left( #1\right)}
+\newcommand{\NIW}[1]{\mathcal{NIW}\left( #1\right)}
+\newcommand{\Beta}[1]{\mathcal{Beta}\left( #1\right)}
+\newcommand{\Ber}[1]{{\rm Ber}\left( #1\right)}
+\newcommand{\U}[1]{\mathcal{U}\left( #1\right)}
+
+% My small matrix
+\newcommand{\mySmallMatrix}[1]{\left(\begin{smallmatrix} #1 \end{smallmatrix}\right)}
+%Determinant
+\newcommand{\mydet}[1]{\left| #1 \right|}
+\newcommand{\tr}[1]{\mathrm{tr}\left\{ #1 \right\}} % trace
+\newcommand{\diag}{\mathrm{diag}}
+% My indicator function
+\newcommand{\myind}[1]{\mathds{1}\left[#1\right]}
+% d in integral
+\newcommand{\dd}[1]{\mathrm{d} #1}
+
+% Useful in Bandits
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\Astar}{A^*}
+\newcommand{\astar}{a^*}
+\newcommand{\pstar}{p^*}
+\newcommand{\pistar}{\pi^*}
+\newcommand{\Atilde}{\tilde{A}}
+\newcommand{\atilde}{\tilde{a}}
+\newcommand{\ptilde}{\tilde{p}}
+\newcommand{\pitilde}{\tilde{\pi}}
+\newcommand{\thetastar}{\theta^*}
+\newcommand{\thetatilde}{\tilde{\theta}}
+\newcommand{\Y}{\mathcal{Y}}
+\newcommand{\HH}{\mathcal{H}}
+
+\newcommand{\myPi}[2]{\pi_{#1}\left( #2 \right)}
+%\newcommand{\myPistar}[1]{\pi_{p^*}^*\left( #1 \right)}
+\newcommand{\myPistar}[1]{\pi_{p^*}\left( #1 \right)}
+%\newcommand{\myPitilde}[1]{\tilde{\pi}_{\ptilde}\left( #1 \right)}
+\newcommand{\myPitilde}[1]{\pi_{\ptilde}\left( #1 \right)}
+
+%Others
+\newcommand{\eqd}{\stackrel{d}{=}} % equal in distribution/law/measure
+\newcommand{\deq}{:=} % Define equality
+\newcommand{\abs}[1]{|{#1}|}
+\newcommand{\argmax}{\mathop{\mathrm{argmax}}}
+\newcommand{\argmin}{\mathop{\mathrm{argmin}}}
+\newcommand{\eps}{\varepsilon}
+%%%%%%%% end iurteaga %%%%%%%% 

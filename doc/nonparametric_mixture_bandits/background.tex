@@ -1,0 +1,155 @@
+% !TEX root = main.tex
+\subsection{Multi-armed bandits}
+\label{ssec:background_mab}
+
+A multi-armed bandit (MAB) is a real time sequential decision process in which, at each interaction with the world, an agent selects an action (\ie arm) $a\in \A$, where $\mathcal{A}$ is the set of arms of the bandit, according to a policy targeted to maximize cumulative rewards over time.
+The rewards observed by the agent are independent and identically distributed (i.i.d.) from the true outcome distribution:
+$Y \sim p^*(Y)=\myProb{}{Y=y}$\footnote{The argument of a distribution denotes the random variable, which is capitalized, its realizations are denoted in lower-case.} is a stochastic reward, where $\pstar(Y)$ is the joint probability distribution of rewards, itself randomly drawn from a family of distributions $\mathcal{P}$.
+We denote with $p_a^*(Y)=p^*(Y|a)$ the conditional reward distribution of arm $a$, from which outcomes $Y_{t,a}$ are drawn: $Y_{t,a}\sim \pstar(Y|a)=\myProb{}{Y=y|a_t=a}$.
+
+These distributions are often parameterized by $\theta \in \Theta$, \ie $\mathcal{P}=\{p(Y|\theta)\}_{\theta \in \Theta}$, where the true reward distribution corresponds to a unique $\theta^* \in \Theta$, \ie $\pstar(Y)=p(Y|\thetastar)$. Without loss of generality, we relate to the parametric notation hereafter, and in a Bayesian view of MABs, specify a prior with hyperparameter $\varPhi$ over the parameter distribution $p(\theta|\varPhi)$ when necessary.
+
+In the contextual MAB, one must decide which arm $a_{t}$ to play at each time $t$, based on the available context (\ie $x_{t}\in\mathcal{X}$) where the observed reward for the played arm $y_{t,a_{t}}$ is drawn from the unknown reward distribution of arm $a_t$ conditioned on the context,
+\begin{equation}
+Y_{t,a_t}\sim p(Y|a_t,x_t,\thetastar) \; .
+\end{equation}
+Given the true model $p(Y|x_t,\thetastar)$, the optimal action is to select
+\begin{equation}
+a_t^* = \argmax_{a^\prime \in \A} \mu_{t,a^\prime}(x_t,\thetastar) \;,
+\end{equation}
+where
+\begin{equation}
+\mu_{t,a}(x_t,\thetastar)=\eValue{p(Y|a,x_t,\thetastar)}{Y}
+\end{equation}
+is the conditional expectation of rewards with respect to the true distribution $p(Y|a,x_t,\thetastar)$ of each arm $a$, given the context $x_t$ at time $t$, and true parameter $\theta^*$.
+
+The challenge in (contextual) MABs is the lack of knowledge about the reward-generating distribution, \ie uncertainty about $\thetastar$ induces uncertainty about the true optimal action $a_t^*$. One needs to simultaneously learn the properties of the reward distribution ---its expected value, at a minimum--- and sequentially decide which action to take next.
+
+We use $\pi(A)$ to denote a bandit policy, which is in general stochastic (\ie $A$ is a random variable) on its choices of arms: $\pi(A)=\myProb{}{A=a}, \forall a\in\A$.
+MAB policies choose the next arm to play towards maximizing (expected) rewards, based upon the history observed. Previous history contains the set of given contexts, played arms, and observed rewards up to time $t$, denoted as $\HH_{1:t}=\left\{x_{1:t}, a_{1:t}, y_{1:t}\right\}$, with $x_{1:t} \equiv (x_1, \cdots , x_t)$, $a_{1:t} \equiv (a_1, \cdots , a_t)$, and $y_{1:t} \equiv (y_{1,a_1}, \cdots , y_{t,a_t})$.
+
+The goal of a policy is to maximize its cumulative reward, or equivalently, to minimize the cumulative regret (the loss incurred due to not knowing the best arm $a_t^*$ at each time $t$), \ie $r_T=\sum_{t=1}^T \left(y_{t,\astar_t}-y_{t,a_t}\right)$, where $a_t$ denotes the arm picked by the policy $\pi(A)$ at time $t$.
+In the stochastic MAB setting, we study the expected cumulative \emph{frequentist} regret at time horizon $T$,
+
+\begin{align}
+R_T &=\eValue{}{\sum_{t=1}^T \left(Y_{t,\Astar_t}-Y_{t,A_t} \right)} =\eValue{p(Y|\thetastar), \pi(\Astar_t), \pi(A_t)}{  \sum_{t=1}^T Y_{t,\Astar_t}-Y_{t,A_t}} \; ,
+\label{eq:cumulative_regret}
+\end{align}
+where the expectation is taken over the randomness of the outcomes $Y$, for a given true parametric model $p(Y|\thetastar)$, and the arm selection policies $\pi(\cdot)$: $\pi(\Astar_t)=\myProb{}{\Astar_t=\astar_t}$ denotes the optimal policy, $\pi(A_t)=\myProb{}{A_t=a_t}$ denotes an stochastic bandit policy.
+For clarity of notation, we drop the dependency on context $x_t$ from $\pi(\cdot)=\pi(\cdot|x_t)$ and $p(Y|\thetastar)=p(Y|x_t, \thetastar)$, as these are fixed and observed for all $t =\{1,\cdots, T\}$.
+
+A related notion of regret, where the uncertainty in the true bandit model is averaged over an assumed prior $\thetastar \sim p(\thetastar|\varPhi)$, is known as
+the expected cumulative \emph{Bayesian} regret at time horizon $T$,
+\begin{align}
+\eValue{p(\thetastar|\varPhi)}{R_T}&=\eValue{p(\thetastar|\varPhi)}{\eValue{}{\sum_{t=1}^T \left(Y_{t,\Astar_t}-Y_{t,A_t} \right)}} \nonumber \\
+&=\eValue{p(\thetastar|\varPhi)}{
+	\eValue{p(Y|\thetastar), \pi(\Astar_t), \pi(A_t)}{  \sum_{t=1}^T Y_{t,\Astar_t}-Y_{t,A_t}}
+} \; ,
+\label{eq:cumulative_regret_bayes}
+\end{align}
+and has been considered by many for the analysis of Thompson sampling~\citep{ic-Bubeck2013,j-Russo2014,j-Russo2016}. Note that, as pointed out by~\citep{ip-Agrawal2013}, a regret bound on the frequentist sense implies the same bound on Bayesian regret, but not vice-versa.
+
+\subsection{Thompson sampling}
+\label{ssec:thompson_sampling}
+In this work, we focus on Thompson sampling (TS)~\citep{j-Thompson1933,j-Russo2018}, a stochastic policy that chooses what arm to play next in proportion to its probability of being optimal, given the history up to time $t$, \ie
+\begin{equation}
+\myPi{}{A_t} = \myPi{p}{A_t|x_{t}, \HH_{1:t-1}}= \myProb{p}{A_t=a_{t}^*|x_{t}, \HH_{1:t-1}} \; .
+\end{equation}
+We specifically denote with a subscript ${}_{p}$ the parametric model class $p=p(Y|\theta)$ assumed by a Thompson sampling policy $\myPi{p}{\cdot}$.
+In a Bayesian view of MABs, the uncertainty over the reward model ---the unknown parameter $\theta$--- is accounted for by modeling it as a random variable with an appropriate prior $p(\theta|\varPhi)$ with hyperparameters $\varPhi$ (we will omit the hyperparameters of the prior when it is clear from context).
+
+The goal in Thompson sampling is to compute the probability of an arm being optimal by marginalizing over the posterior probability distribution of the model parameter $\theta$ after observing history $\HH_{1:t}$,
+\begin{align}
+\myPi{p}{A_t|x_{t},\HH_{1:t-1}} &=\myProb{p}{A_t=a_{t}^*|x_{t},\HH_{1:t-1}} \nonumber \\
+& = \int \myProb{p}{A_t=a_{t}^*|x_{t},\HH_{1:t-1},\theta} p(\theta|\HH_{1:t-1}) \dd{\theta} \nonumber \\
+& =\int \myind{A_t=\argmax_{a^\prime \in \A} \mu_{t,a^\prime}(x_{t},\theta)} p(\theta|\HH_{1:t-1}) \dd{\theta} \; .
+\label{eq:theta_unknown_pr_arm_optimal}
+\end{align}
+With the above integral, the uncertainty over the parameter posterior of the assumed model class given history $\HH_{1:t-1}$ is marginalized.
+However, the challenge with the integral in Eqn. \eqref{eq:theta_unknown_pr_arm_optimal} is that it cannot be solved exactly, even when the parameter posterior $p(\theta|\HH_{1:t-1})$ is analytically tractable over time.
+
+Instead, Thompson sampling draws a random parameter sample $\theta^{(t)}$ from the updated posterior $p(\theta|\HH_{1:t-1})$, and picks the arm that maximizes the expected reward given such drawn parameter sample,
+\begin{align}
+\myPi{p}{A_t|x_{t},\HH_{1:t-1}}&=\myind{A_t=\argmax_{a^\prime \in \A} \mu_{t,a^\prime}(x_{t},\theta^{(t)})} \;, \theta^{(t)} \sim p(\theta|\HH_{1:t-1}) \;.
+\end{align}
+
+Computing the reward expectations above, as well as drawing posterior parameters, is attainable in closed form for reward models $p(Y|\theta)$ within the exponential family~\citep{ic-Korda2013, j-Russo2018}.
+
+In practice however, knowledge of the true reward model is illusory.
+In the following, we propose Bayesian nonparametric mixture models per-arm, as tractable yet performant distributions for estimating unknown reward densities in MAB settings where there is uncertainty about the true reward model.
+
+\subsection{Bayesian nonparametric mixture models}
+\label{ssec:background_nonparametric_mixture_model}
+
+A Bayesian nonparametric model is a Bayesian model on an infinite-dimensional parameter space, typically chosen as the set of possible solutions for a learning problem of interest~\citep{b-Mueller2015}.
+For instance, in regression problems, the parameter space can be the set of continuous functions ---\eg specified via a prior correlation structure in Gaussian process regression~\citep{b-Rasmussen2005};
+and in density estimation problems, the hypothesis space can consist of all the densities with continuous support ---\eg a Dirichlet Gaussian mixture model prior~\citep{j-Escobar1995}.
+
+A Bayesian nonparametric model uses only a finite subset of the available parameter dimensions to explain a finite sample of observations, with the set of dimensions adjusted according to the observed sample, such that the effective complexity of the model (as measured by the number of dimensions used) adapts to the data.
+In Gaussian process regression, the correlation structure or kernel function is refined as we observe more samples;
+in density estimation, Dirichlet process mixtures adapt the number of mixands to the complexity of the observed data.
+Therefore, classic adaptive problems, such as nonparametric estimation and model selection, can be formulated as Bayesian inference problems.
+Here, we leverage Bayesian nonparametric mixture models as a powerful density estimation framework that adjust model complexity in response to the observed data~\citep{b-Ghosal2017}.
+
+Bayesian nonparametric mixture models describe countably infinite mixture distributions, characterizing a very flexible model class suited for many practical settings~\citep{b-Ghosal2017}.
+These models provide a natural and flexible approach to density estimation, where the data are modeled as samples from (potentially infinite) mixtures of densities.
+The combination of mixture models with Bayesian nonparametric priors embodies a large hypothesis space, which can arbitrarily approximate continuous distributions~\citep{j-Ghosal1999, j-Ghosal2001, j-Lijoi2004, j-Ghosal2007}.
+
+A nonparametric Bayesian approach to density estimation starts with a prior on densities.
+As in a Parzen window-based density estimator, a useful and desirable property of a nonparametric Bayesian density estimation technique is the smoothness of the resulting empirical density, which requires a prior that can generate smooth posterior distributions.
+In Dirichlet mixture processes~\citep{j-Escobar1995}, one leverages a mixing distribution that is random (\eg the Dirichlet process) as a prior for the mixtures, inducing a nonparametric posterior that is flexible for density estimation~\citep{j-Ghosal2010}.
+P\'{o}lya Trees~\citep{j-Mauldin1992} are another set of priors on probability distributions that can generate both discrete and piecewise continuous densities, depending on the choice of parameters (the Dirichlet process is a special parameterization of a P\'{o}lya tree). Another generalization of the Dirichlet process, called the Pitman-Yor process, has been successful in modeling power-law data. 
+We refer to~\citep{j-Gershman2012} for a detailed literature review of a variety of Bayesian nonparametric alternatives, and how they can be used in practice.
+
+A Pitman-Yor process is a stochastic process whose sample path is a probability distribution, \ie it is a Bayesian nonparametric model from where a drawn random sample is an infinite discrete probability distribution. 
+We succinctly summarize the generative process and the basics for its inference here, and refer the interested reader to~\citet{j-Teh2010} for further details.
+
+A Pitman-Yor mixture model, with discount parameter $0 \leq d < 1$ and concentration parameter $\gamma > -d$, is described by the following generative process:
+\begin{itemize}
+	\item Parameters are drawn from the Pitman-Yor process, \ie
+		\begin{equation}
+		\varphi_n \sim G=PY(d, \gamma, G_0) \; ,
+		\end{equation}
+		where $G_0$ is the base measure.
+		We write $G_0(\varphi)=G(\varphi|\varPhi_0)$ and $G_n(\varphi)=G(\varphi|\varPhi_n)$ for the prior and posterior distributions of the parameter set $\varphi$, respectively.  $\varPhi_0$ are the prior hyperparameters of the base emission distribution, and $\varPhi_n$ the posterior hyperparameters, after $n$ observations.
+		
+		The Pitman-yor process gives rise to a discrete random measure $G$, with ties among the $\varphi_n$s, which naturally define parameter groupings (clusters). Consequently, the Pitman-Yor process can be equivalently described as	
+		\begin{equation}
+		\varphi_{n+1}|\varphi_{1:n}, d, \gamma, G_0 \sim \sum_{k=1}^{K} \frac{n_k-d}{n+\gamma}\delta_{\varphi_k} + \frac{\gamma+Kd}{n+\gamma}G_0 \;,
+		\label{eq:pitman_yor_mixture}
+		\end{equation}
+		where $\delta_{\varphi_k}$ is the Dirac delta function located at parameter atom $\varphi_k$, $n_k$ refers to the number of observations assigned to mixture component $k$, and $n=\sum_{k=1}^Kn_k$. After $n$ observations, there are $K$ already `\textit{seen}' clusters, and a non-zero probability $\frac{\gamma+Kd}{n+\gamma}$ of observing a `\textit{new}' mixture component $k_{new}$ drawn from the base measure $G_0$.
+	
+	\item The $n+1$th observation $y_{n+1}$ is drawn from the emission distribution parameterized by the parameters of its corresponding mixture component, \ie $Y_{n+1} \sim p(Y|\varphi_{n+1})$.
+\end{itemize}
+
+The Pitman-Yor process is a generalization of the well studied Dirichlet process, which can be readily obtained from Eqn.~\eqref{eq:pitman_yor_mixture} by using $d=0$. The discount parameter $d$ gives the Pitman-Yor process more flexibility over tail behavior: the Dirichlet process has exponential tails, whereas the Pitman-Yor can have power-law tails.
+
+For analysis and inference of these Bayesian nonparametric models, one incorporates auxiliary latent variables $z_n$. These are $K+1$ dimensional categorical variables, where $z_{n}=k$ if observation $y_n$ is drawn from mixture component $k$.
+
+The joint posterior of this auxiliary assignment variables $z_{1:n}$ factorizes as
+\begin{equation}
+p(z_{1:n}|\gamma) = \prod_{i=1}^n p(z_i|z_{1:i-1},\gamma) \; .
+\end{equation}
+To compute the full joint likelihood of the Pitman-Yor process assignments and observations, one must consider its emission distribution with hyperparameters $\varPhi$, which factorizes as
+\begin{equation}
+p(y_{1:n},z_{1:n}|\gamma, \varPhi) = p(y_{1:n}|z_{1:n}, \varPhi) p(z_{1:n}|\gamma) \; .
+\end{equation}
+
+For inference, given observations $y_{1:n}$, of the unknown latent variables and parameters, one derives a Gibbs sampler that iterates between sampling mixture assignments $z_{1:n}$, and updating the emission distribution parameter posterior $G_n(\varphi)$.
+
+The conditional distributions of observation assignment $z_n$ to already drawn mixture components $k\in\{1, \cdots, K\}$, and a new `\textit{unseen}' mixand $k_{new}$ follow
+\begin{equation}
+\begin{cases}
+p(z_{n+1}=k|y_{n+1},y_{1:n},z_{1:n}, \gamma, G_0) \propto \frac{n_k-d}{n+\gamma} \int_{\varphi} p(y_{n+1}|\varphi) G_n(\varphi) \dd{\varphi}\; ,\\
+p(z_{n+1}=k_{new}|y_{n+1},y_{1:n},z_{1:n}, \gamma, G_0) \propto \frac{\gamma+K d}{n+\gamma} \int_{\varphi} p(y_{n+1}|\varphi) G_0(\varphi) \dd{\varphi} \; .
+\end{cases}
+\label{eq:gibbs_mixture_assignment}
+\end{equation}
+
+Note that, after $n$ observations $y_{1:n}$, the nonparametric posterior contains $K$ already `\textit{seen}' clusters, and accommodates a non-zero probability $\frac{\gamma+Kd}{n+\gamma}$ of a new mixture component $k_{new}$ (drawn from the base measure $G_0$) that may explain the complexity of the newly observed data $y_{n+1}$ best.
+
+Given these mixture assignments, one updates the parameter posteriors conditioned on $z_{1:n}$ and observations $y_{1:n}$, based on the specific emission distributions and priors $G_n(\varphi)=G(\varphi|y_{1:n}, z_{1:n},\varPhi_0)$.
+For analytical convenience, one often resorts to emission distributions and their conjugate priors.
+These determine the computation of the predictive distribution $p(Y|\varPhi)= \int_{\varphi} p(Y|\varphi) G(\varphi|\varPhi) \dd{\varphi}$ involved in solving Eqn.~\eqref{eq:gibbs_mixture_assignment}.
+~\citep{j-Teh2010} provide a detailed explanation of the Gibbs sampling based inference procedure.

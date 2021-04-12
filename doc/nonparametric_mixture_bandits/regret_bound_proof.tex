@@ -1,0 +1,282 @@
+% !TEX root = main.tex
+\section{Asymptotic regret bound for nonparametric mixture based Thompson sampling}
+\label{asec:nonparametric_thompson_sampling_regret_bound}
+
+We start by clarifying the notation we use in the sequel:
+\begin{itemize}
+	\item We denote the distribution $p(\Omega)$ of the random variable $\Omega$ for the probability of a random event $\omega$ with $\myProb{p}{\Omega=\omega}$.
+	\item We specify the distribution $p(\cdot)$ of the random variable within an expectation with a subscript, $\eValue{p}{\cdot}$.
+	\item We use $\mu_{a}=\eValue{p}{Y_{a}}$ to indicate the expectation under some distribution $p$ of the reward for each arm $a\in\A$.
+	\item We use $\mu=\{\mu_{t,a}\}, \forall a\in \A$ for the set of all per-arm expected values.
+	\item We define the union of the context at time $t$ and history up to $t-1$ with $h_{1:t}=\{x_t,\HH_{1:t-1}\}$.
+	\item We use $(\mu_{t,a}|h_{1:t})=\eValue{p}{Y_{a}|h_{1:t}}$ to indicate the expectation under the posterior of the reward distribution $p$ of each arm $a$ given context and history $h_{1:t}$ up to time $t$.
+	%\item We denote a potentially time-varying distribution over the expected reward means as $p_{t}=p_t(\mu_t|h_{1:t})$
+	\item We denote stochastic policies with $\myPi{p}{\cdot}$, where the subscript makes explicit the assumed reward model class $p(\cdot)$.
+	\item For Thompson sampling policies, we may interchangeably write
+\begin{align}
+	\myPi{p}{A_t} &= \myPi{p}{A_t|h_{1:t}} \\
+	&= \myProb{p}{A_t=a_{t}^*|h_{1:t}} \nonumber \\
+	&=\myProb{p}{A_t=\argmax_{a^\prime \in \A} \left(\mu_{t,a^\prime} \big| h_{1:t}\right)} \nonumber \\ 
+	& =\eValue{p}{\myind{A_t=\argmax_{a^\prime \in \A} \left(\mu_{t,a^\prime} \big| h_{1:t}\right) }} \nonumber \;.
+\end{align}
+	
+	\item \textbf{The total variation distance} $\delta_{TV}(p,q)$ between distributions $p$ and $q$ on a sigma-algebra $\mathcal{F}$ of subsets of the sample space $\Omega$ is defined as
+\begin{equation}
+\delta_{TV}(p, q) = \sup_{B \in \mathcal{F}} \left|p(B)-q(B)\right| \; .
+\end{equation}
+When $\Omega$ is countable,
+\begin{equation}
+\delta_{TV}(p, q) = \sup_{B \in \mathcal{F}} \left|p(B)-q(B)\right| = \frac{1}{2} \sum_{\omega \in \Omega} \left|p(\omega) - q(\omega) \right| \; ,
+\end{equation}
+which is directly related to the $L1$ norm
+\begin{equation}
+\delta_{TV}(p, q) = \frac{1}{2} \sum_{\omega \in \Omega} \left|p(\omega) - q(\omega) \right| = \frac{1}{2} \|p-q\|_{1} \;.
+\end{equation}
+More broadly, if $p$ and $q$ are both absolutely continuous with respect to some base measure $\mu$,
+\begin{equation}
+\delta_{TV}(p, q) = \sup_{B \in \mathcal{F}} \left|p(B)-q(B)\right| = \frac{1}{2} \int_{\Omega} \left|\frac{\dd{p}}{\dd{\mu}} - \frac{\dd{q}}{\dd{\mu}} \right|  \dd{\mu} \; ,
+\end{equation}
+where $\frac{\dd{p}}{\dd{\mu}}$ and $\frac{\dd{q}}{\dd{\mu}}$ are the Radon-Nikodyn derivatives of $p$ and $q$ with respect to $\mu$.\\
+\end{itemize}
+
+We now re-state and proof Lemma~\ref{lemma:total_variation_bounds_diff_policies}:
+
+% Restating Lemma1
+\textbf{Lemma~\ref{lemma:total_variation_bounds_diff_policies}}:
+The difference in action probabilities between two Thompson sampling policies, given the same history and context up to time $t$, is bounded by the total-variation distance $\delta_{TV}(p_t,q_t)$ between the posterior distributions of their expected rewards at time $t$, $p_t=p(\mu_{t}|h_{1:t})$ and $q_t=q(\mu_{t}|h_{1:t})$, respectively:
+\begin{equation}
+\myPi{p_t}{A_t=a} - \myPi{q_t}{A_t=a} \leq \delta_{TV}(p_t,q_t) \; .
+\label{eq:lemma_1_equation}
+\end{equation}
+
+The proof of Lemma~\ref{lemma:total_variation_bounds_diff_policies} consists on showing that the difference between the expected values of a function of a random variable is bounded by the total variation distance between the corresponding distributions. 
+
+\begin{proof}
+	Let us define a linear function $l:\Omega \rightarrow [-1/2,1/2]$ of a bounded function $g(\omega)$:
+	\begin{equation}
+	l(\omega)=\frac{g(\omega)-\inf_{\omega \in \Omega} g(\omega)}{\sup_{\omega \in \Omega} g(\omega)-\inf_{\omega \in \Omega} g(\omega)} -\frac{1}{2} \; .
+	\end{equation}
+	Then,
+	\begin{align}
+	&\delta_{TV}(p, q) = \frac{1}{2} \int_{\Omega} \left|\frac{\dd{p}}{\dd{\mu}} - \frac{\dd{q}}{\dd{\mu}} \right| \dd{\mu} \geq \frac{1}{2} \int_{\Omega} \left|2 l \left(\frac{\dd{p}}{\dd{\mu}} - \frac{\dd{q}}{\dd{\mu}} \right) \right| \dd{\mu} \nonumber \\
+		& \qquad  \geq \int_{\Omega} l \left(\frac{\dd{p}}{\dd{\mu}} - \frac{\dd{q}}{\dd{\mu}} \right) \dd{\mu} \geq \int_{\Omega} l \cdot \dd{p} - \int_{\Omega} l \cdot \dd{q} \nonumber \\
+		& \qquad \geq \eValue{p}{l(\omega)}-\eValue{q}{l(\omega)} = \frac{\eValue{p}{g(\omega)}-\eValue{q}{g(\omega)}}{\sup_{\omega \in \Omega} g(\omega)-\inf_{\omega \in \Omega} g(\omega)} \; .
+	\label{eq:total_variation_bounds_function_expectations}
+	\end{align}
+	We now recall that we can write the difference between two Thompson sampling policies as
+	\begin{align}
+	\myPi{p_t}{A} - \myPi{q_t}{A} &= \eValue{p_t}{\myind{A=\argmax_{a^\prime \in \A} \left(\mu_{t,a^\prime} \big| h_{1:t}\right)}} \nonumber \\
+		&\hspace*{0.1\columnwidth}- \eValue{q_t}{\myind{A=\argmax_{a^\prime \in \A} \left(\mu_{t,a^\prime} \big| h_{1:t}\right)}} \;.
+	\end{align}
+	Let us define $g(\mu_{t}) = \myind{A=\argmax_{a^\prime \in \A} \left(\mu_{t,a^\prime} \big| h_{1:t}\right)}$, which is bounded in $[0,1]$:
+	\begin{equation}
+	\begin{cases}
+	\inf_{\mu_{t}} g(\mu_{t}) = 0 \;,\\
+	\sup_{\mu_{t}} g(\mu_{t}) = 1 \;.
+	\end{cases}
+	\end{equation} 
+	Direct substitution in Equation~\eqref{eq:total_variation_bounds_function_expectations} results in	
+	\begin{align}
+	\delta_{TV}(p_t,q_t) &\geq \eValue{p_t}{\myind{A=\argmax_{a^\prime \in \A} \left(\mu_{t,a^\prime} \big| h_{1:t}\right)}} \nonumber \\
+	&\hspace*{0.1\columnwidth}- \eValue{q_t}{\myind{A=\argmax_{a^\prime \in \A} \left(\mu_{t,a^\prime} \big| h_{1:t}\right)}} \nonumber \\
+	& \geq \myPi{p_t}{A} - \myPi{q_t}{A} \;,
+	\end{align}
+	which concludes the proof.
+\end{proof}
+
+We make use of Lemma~\ref{lemma:total_variation_bounds_diff_policies} to bound the asymptotic expected cumulative regret of the proposed Thompson sampling with a Dirichlet process (\ie $d_a=0, \forall a$) Gaussian mixture prior. 
+
+%\newpage
+To that end, let us define the following Thompson sampling policies:
+\begin{itemize}
+	\item The optimal Thompson sampling policy, $\myPistar{\cdot}$, which chooses the optimal arm given the true reward model $\pstar=p(Y|\thetastar)$,
+	\begin{align}
+	\myPistar{\Astar_t|h_{1:t}} &=\myProb{\pstar}{\Astar_t=\argmax_{a^\prime \in \A} \left(\mu_{t,a^\prime} \big| h_{1:t}\right)} \nonumber \\ 
+	&= \eValue{\pstar}{\myind{\Astar_t=\argmax_{a^\prime \in \A} \left(\mu_{t,a^\prime} \big| h_{1:t}\right) }} \;.
+	\end{align}
+	%The actions of the optimal policy, denoted as $\Astar_t\sim \myPistar{\Astar_t}$, are stochastic due to the uncertainty on the true model $\pstar$.
+	\item A parametric Thompson sampling policy, $\myPi{p}{\cdot}$, which knows the true reward distribution model class $p=p(Y|\theta)$, but not the true parameter $\thetastar$,
+	\begin{align}
+	\myPi{p}{A_t|h_{1:t}}&=\myProb{p}{A_t=\argmax_{a^\prime \in \A} \left(\mu_{t,a^\prime} \big| h_{1:t}\right)} \nonumber \\ 
+	& =\eValue{p}{\myind{A_t=\argmax_{a^\prime \in \A} \left(\mu_{t,a^\prime} \big| h_{1:t}\right) }} \;.
+	\end{align}
+	The actions of this Thompson sampling policy, denoted as $A_t\sim \myPi{p}{A_t|h_{1:t}}$, are stochastic due to the uncertainty on the parameter $\theta$ of the true density $p(Y|\theta)$.
+	\item A nonparametric Thompson sampling policy, $\myPitilde{\cdot}$, which estimates the unknown true reward distribution with a nonparametric density $\ptilde=\ptilde(Y|\varphi)$,
+	\begin{align}
+	\myPitilde{\Atilde_t|h_{1:t}} &=\myProb{\ptilde}{\Atilde_t=\argmax_{a^\prime \in \A} \left(\mu_{t,a^\prime} \big| h_{1:t}\right)} \nonumber \\ 
+	&=\eValue{\ptilde}{\myind{\Atilde_t=\argmax_{a^\prime \in \A} \left(\mu_{t,a^\prime} \big| h_{1:t}\right) }} \;.
+	\end{align}
+	The actions of this Thompson sampling policy, denoted as $\Atilde_t\sim \myPitilde{\Atilde_t|h_{1:t}}$, are stochastic due to the uncertainty on the parameter $\varphi$ of the nonparametric density $\ptilde(Y|\theta)$.
+\end{itemize}
+
+\textbf{Theorem~\ref{th:regret_bound}}:
+The expected cumulative regret at time $T$ of a Dirichlet process Gaussian mixture model based Thompson sampling algorithm is asymptotically bounded by
+	\begin{equation}
+	R_T	=\eValue{}{\sum_{t=1}^T Y_{t,\Astar_t}-Y_{t,\Atilde_t} } \leq \mathcal{O}\left(|\A| \log^\kappa T \sqrt{T} \right) \; \text{ as } T \rightarrow \infty \;,
+	\end{equation}
+	where the expectations are taken over the random rewards $Y_t\sim \pstar=p(Y|x_t,\thetastar)$ and the random actions of the stochastic policies $\myPistar{\Astar_t}$ and $\myPitilde{\Atilde_t}$.
+	
+	This expected regret bound holds in the frequentist sense.
+
+	We use big-O notation $\mathcal{O}(\cdot)$ as it bounds from above the growth of the cumulative regret over time for large enough input sizes, \ie
+\begin{align}
+\lim_{T\rightarrow \infty} \frac{R_T}{|\A| \log^\kappa T \sqrt{T} } & \leq \mathcal{O}(1)\; .
+\end{align}
+
+In the following, we avoid notation clutter and denote $\pstar=\pstar(Y)=p(Y|\thetastar)$ for the true reward distribution given the true parameters $\thetastar$, and drop the dependency over the observed history $h_{1:t}$ at time $t$ in the considered Thompson sampling policies: 
+$\pi_{\pstar}=\myPistar{\Astar_t|h_{1:t}}$, for the optimal Thompson sampling policy with knowledge of the true reward model $\pstar=p(Y|\thetastar)$;
+$\pi_{p}= \myPi{p}{A_t|h_{1:t}}$, for a Thompson sampling policy with knowledge of the true reward distribution model class $p=p(Y|\theta)$ ---but not the true parameter $\thetastar$; and 
+$\pi_{\ptilde}=\myPitilde{\Atilde_t|h_{1:t}}$, for a nonparametric Thompson sampling policy that estimates the unknown true reward distribution with a nonparametric density $\ptilde=\ptilde(Y|\varphi)$.
+
+
+\begin{proof}
+\begin{align}
+R_T &=\eValue{}{\sum_{t=1}^T Y_{t,\Astar_t}-Y_{t,\Atilde_t} } \label{eq:cum_regret_optimal_to_nts} \\
+&=\eValue{\pi_{\pstar},\pi_{\ptilde}}{\eValue{\pstar}{
+		\sum_{t=1}^T Y_{t,\Astar_t}-Y_{t,\Atilde_t} 
+	}
+	} \\
+&=\sum_{t=1}^T \eValue{\pi_{\pstar},\pi_{\ptilde}}{\eValue{\pstar}{ Y_{t,\Astar_t}-Y_{t,\Atilde_t}}} \\
+&=\sum_{t=1}^T \eValue{\pi_{\pstar},\pi_{\ptilde},\pi_{p}}{\eValue{\pstar}{ Y_{t,\Astar_t}-Y_{t,A_t}+Y_{t,A_t}-Y_{t,\Atilde_t}}} \\
+&=\sum_{t=1}^T \eValue{\pi_{\pstar},\pi_{p}}{\eValue{\pstar}{ Y_{t,\Astar_t}-Y_{t,A_t}}} \nonumber \\
+& \qquad + \sum_{t=1}^T \eValue{\pi_{p},\pi_{\ptilde}}{\eValue{\pstar}{ Y_{t,A_t}-Y_{t,\Atilde_t}}} \\
+&=\sum_{t=1}^T \eValue{\pi_{\pstar},\pi_{p}}{\mu_{t,\Astar_t}-\mu_{t,A_t} } \nonumber \\
+& \qquad + \sum_{t=1}^T \eValue{\pi_{p},\pi_{\ptilde}}{\mu_{t,A_t}-\mu_{t,\Atilde_t} } \; , \label{eq:cum_regret_nts} 
+\end{align}
+where we have split the expected cumulative regret of \autoref{eq:cum_regret_optimal_to_nts} in two terms.
+
+The first term in the RHS of \autoref{eq:cum_regret_nts} relates to the regret between the optimal policy $\Astar_t \sim \myPistar{\Astar_t|h_{1:t}}$ and a Thompson sampling policy that knows the true model class $A_t \sim \myPi{p}{A_t|h_{1:t}}$; and the second term in the RHS of \autoref{eq:cum_regret_nts} accommodates the regret between a Thompson sampling policy that knows the true model class $A_t \sim \myPi{p}{A_t|h_{1:t}}$, and a Thompson sampling that estimates reward functions via nonparametric processes $\Atilde_t \sim \myPitilde{\Atilde_t|h_{1:t}}$.
+
+Let us first work on the first term in the RHS of \autoref{eq:cum_regret_nts}:
+\begin{align}
+&\sum_{t=1}^T \eValue{\pi_{\pstar},\pi_{p}}{\mu_{t,\Astar_t}-\mu_{t,A_t} } \\
+&\qquad =\sum_{t=1}^T \left[ \left(\sum_{\astar_t \in \A}\mu_{t,\astar_t} \myPistar{\Astar_t=\astar_t|h_{1:t}}\right) \right. \\
+&\qquad \qquad \qquad  \left. - \left( \sum_{a_t \in \A}\mu_{t,a_t} \myPi{p}{A_t=a_t|h_{1:t}}\right)\right]\\
+&\qquad =\sum_{t=1}^T \left(\sum_{a \in \A} \mu_{t,a} \left[\myPistar{\Astar_t=a|h_{1:t}}-\myPi{p}{A_t=a|h_{1:t}}\right] \right) \\
+&\qquad \leq \sum_{t=1}^T \left(\sum_{a \in \A} C_A \left[\myPistar{\Astar_t=a|h_{1:t}}-\myPi{p}{A_t=a|h_{1:t}}\right]  \right) \label{eq:cum_regret_optimal_to_ts_C_A} \\
+&\qquad \leq \sum_{t=1}^T \left(\sum_{a \in \A} C_A \delta_{TV} \left(\pstar(\mu_t|h_{1:t}),p(\mu_t|h_{1:t})\right) \right) \label{eq:cum_regret_optimal_to_ts_total_variation} \\
+&\qquad \leq  \sum_{t=1}^T \sum_{a \in \A} C_A C_p t^{-1/2} \label{eq:cum_regret_optimal_to_ts_total_variation_convergence} \\
+&\qquad \leq C_A C_p \sum_{a \in \A} \left(\sum_{t=1}^{T} t^{-1/2} \right) \label{eq:cum_regret_optimal_to_ts_rearrange_sum} \\
+&\qquad \leq C_A C_p \sum_{a \in \A} \left(\int_{t=1}^{T} t^{-1/2} \dd{t} \right) \label{eq:cum_regret_optimal_to_ts_sum_t_integral} \\
+&\qquad \leq C_A C_p \sum_{a \in \A} (2 \sqrt{T} - 2) \label{eq:cum_regret_optimal_to_ts_algebra_on_t_integral_solution} \\
+&\qquad \leq 2 C_A C_p |\A| \sqrt{T} \; ,\label{eq:cum_regret_optimal_to_ts_algebra_on_t_sum_a}
+\end{align}
+
+where
+\begin{itemize}
+	\item in \autoref{eq:cum_regret_optimal_to_ts_C_A}: we define $C_A \coloneqq \max_{a \in \A} \mu_{a,t}, \forall t$, \ie it is an upper bound on the expected rewards of the bandit.
+	
+	\item in \autoref{eq:cum_regret_optimal_to_ts_total_variation}: by direct application of \autoref{eq:lemma_1_equation} in Lemma~\ref{lemma:total_variation_bounds_diff_policies}:
+	$\myPistar{\Astar_t=a|h_{1:t}}-\myPi{p}{A_t=a|h_{1:t}} \leq \delta_{TV} \left(\pstar(\mu_t|h_{1:t}),p(\mu_t|h_{1:t})\right)$.
+	
+	That is, the difference in probabilities of playing each arm $a$ are bounded by the total variation distance between the posterior distributions of the expected rewards for each policy.
+	
+	For the optimal Thompson sampling policy, the parameters of the reward distribution are known, \ie the posterior is a delta at the true $\thetastar$ value:
+	\begin{align}
+		\pstar(\mu_t|h_{1:t}) &=\int_{\thetastar}\pstar(\mu_t|\thetastar)p(\thetastar|h_{1:t})\dd\thetastar \nonumber \\
+		&=\int_{\thetastar}\pstar(\mu_t|\thetastar)\delta(\thetastar)\dd\thetastar \nonumber \\ 
+		&= \pstar(\mu_t|\thetastar) \nonumber \;.
+	\end{align}
+	
+	For the Thompson sampling policy that knows the true model class, the parameters of the reward distribution are updated as history $h_{1:t}$ is observed:
+	\begin{align}
+	p(\mu_t|h_{1:t}) &=\int_{\theta} p(\mu_t|\theta)p(\theta|h_{1:t})\dd\theta \nonumber \;.
+	\end{align}
+	
+	\item in \autoref{eq:cum_regret_optimal_to_ts_total_variation_convergence}: $\delta_{TV} \left(\pstar(\mu_t|h_{1:t}),p(\mu_t|h_{1:t})\right) \sim C_p t^{-1/2}$, as $t \rightarrow \infty$, where $C_p$ is a constant that depends on the properties of the parameterized distributions, and does not depend on the amount of observed data. \\
+	As explained in \citep{j-Ghosal2000}, for a class of parameterized distributions $\mathcal{P}=\{p(Y|\theta)\}_{\theta \in \Theta}$ and a prior constructed by putting a measure on the parameter set $\Theta$, it is well known that the posterior distribution of $\theta$ asymptotically achieves the optimal rate of convergence under mild regularity conditions ---\ie $\Theta$ is subset of a finite-dimensional Euclidean space, and the prior and model dependence is sufficiently regular \citep{b-Ibragimov1981}.
+	In particular, and according to the Bernstein-von Mises theorem, if the model $p(Y|\theta)$ is suitably differentiable, then the convergence rate of the posterior mean $p(\mu_t|h_{1:t})$ and $\pstar(\mu_t)$ is of order $t^{-1/2}$, where $t$ indicates the amount of \iid data drawn from the true distribution $\pstar(Y)$.
+	
+	Note that the true $\pstar(\mu_t)$ and the posterior $p(\mu_t|h_{1:t})$ are over the expected rewards of all arms.
+	Therefore, $t=\sum_{a \in \A} t_a$, where $t_a$ indicates the number of observations for each arm, is the number of times all arms $\forall a\in \A$ have been pulled.
+	Consequently, the total variation \autoref{eq:cum_regret_optimal_to_ts_total_variation_convergence} depends on the total number of observations $t$ across all arms $a$.
+	
+	\item in \autoref{eq:cum_regret_optimal_to_ts_sum_t_integral}: $\sum_{t=1}^{T} t^{-1/2} = \mathbb{H}^{1/2}(T)\leq \int_{t=1}^{T} t^{-1/2} \dd{t}$, where $\mathbb{H}$ is the generalized harmonic number of order $1/2$ of $T$. 
+\end{itemize}
+
+This concludes the proof of the bound of the first term in the RHS of \autoref{eq:cum_regret_nts}.
+
+\pagebreak
+We now bound the second term in the RHS:
+
+\begin{align}
+&\sum_{t=1}^T \eValue{\pi_{p},\pi_{\ptilde}}{\mu_{t,A_t}-\mu_{t,\Atilde_t} } \\
+&\qquad =\sum_{t=1}^T \left[ \left(\sum_{a_t \in \A}\mu_{t,a_t} \myPi{p}{A_t=a_t|h_{1:t}}\right) \right. \\
+&\qquad \qquad \qquad \left. - \left( \sum_{\atilde_t \in \A}\mu_{t,\atilde_t} \myPitilde{\Atilde_t=\atilde_t|h_{1:t}}\right) \right] \\
+&\qquad =\sum_{t=1}^T \left(\sum_{a \in \A} \mu_{t,a} \left[\myPi{p}{A_t=a|h_{1:t}}-\myPitilde{\Atilde_t=a|h_{1:t}}\right] \right) \\
+&\qquad \leq \sum_{t=1}^T \left(\sum_{a \in \A} C_A \left[\myPi{p}{A_t=a|h_{1:t}}-\myPitilde{\Atilde_t=a|h_{1:t}}\right]  \right) \label{eq:cum_regret_ts_to_nts_C_A} \\
+&\qquad \leq \sum_{t=1}^T \left(\sum_{a \in \A} C_A \delta_{TV} \left(p(\mu_t|h_{1:t}),\ptilde(\mu_t|h_{1:t})\right) \right) \label{eq:cum_regret_ts_to_nts_total_variation} \\
+&\qquad \leq \sum_{t=1}^T \sum_{a \in \A} C_A C_{\ptilde} t^{-1/2}(\log t)^\kappa \label{eq:cum_regret_ts_to_nts_total_variation_convergence} \\
+&\qquad \leq C_A C_{\ptilde} \sum_{a \in \A} \left(\sum_{t=1}^{T} t^{-1/2} (\log T)^\kappa \right) \label{eq:cum_regret_ts_to_nts_rearrange_sum_bound_logT} \\
+&\qquad \leq C_A C_{\ptilde} \sum_{a \in \A} (\log T)^\kappa \left(\int_{t=1}^{T} t^{-1/2} \dd{t} \right) \label{eq:cum_regret_ts_to_nts_sum_t_integral} \\
+&\qquad \leq C_A C_{\ptilde} \sum_{a \in \A} (\log T)^\kappa (2 \sqrt{T} - 2) \label{eq:cum_regret_ts_to_nts_algebra_on_t_integral_solution} \\
+&\qquad \leq 2 C_A C_{\ptilde} |\A| (\log T)^\kappa\sqrt{T} \; , \label{eq:cum_regret_ts_to_nts_algebra_on_t_sum_a} 
+\end{align}
+
+where
+
+\begin{itemize}
+	\item in \autoref{eq:cum_regret_ts_to_nts_C_A}: $C_A \coloneqq \max_{a \in \A} \mu_{a,t}, \forall t$, as above.
+
+	\item in \autoref{eq:cum_regret_ts_to_nts_total_variation}: by direct application of \autoref{eq:lemma_1_equation} in Lemma~\ref{lemma:total_variation_bounds_diff_policies}:
+	$\myPi{p}{A_t=a|h_{1:t}}-\myPitilde{\Atilde_t=a|h_{1:t}} \leq \delta_{TV} \left(p(\mu_t|h_{1:t}),\ptilde(\mu_t|h_{1:t})\right)$.
+	
+	That is, the difference in probabilities of playing each arm $a$ are bounded by the total variation distance between the posterior distributions of the expected rewards for each policy.
+
+	For the Thompson sampling policy that knows the true model class, the parameters of the reward distribution are updated as history $h_{1:t}$ is observed:
+	\begin{align}
+	p(\mu_t|h_{1:t}) &=\int_{\theta} p(\mu_t|\theta)p(\theta|h_{1:t})\dd\theta \nonumber \;.
+	\end{align}
+	
+	For the Thompson sampling that estimates reward functions via nonparametric model $\ptilde(Y_t|\varphi)$, the parameters $\varphi$ of the nonparametric reward distribution are updated as history $h_{1:t}$ is observed:
+	\begin{align}
+	\ptilde(\mu_t|h_{1:t}) &=\int_{\varphi} \ptilde(\mu_t|\varphi)\ptilde(\varphi|h_{1:t})\dd\varphi \nonumber \;.
+	\end{align}
+
+	\item in \autoref{eq:cum_regret_ts_to_nts_total_variation_convergence}: $\delta_{TV} \left(p(\mu_t|h_{1:t}),\ptilde(\mu_t|h_{1:t})\right) \sim C_{\ptilde} t^{-1/2}(\log t)^\kappa$, as $t\rightarrow \infty$; 
+	where $C_{\ptilde}$ is a constant that depends on the properties of both the true parametric posterior distribution and the nonparametric prior model, but does not depend on the amount of observed data. 
+	We asymptotically bound the total variation distance between the true parametric posterior distribution and a nonparametric model-based posterior distribution, leveraging state-of-the-art results.
+	
+	Note that the posterior $p(\mu_t|h_{1:t})$ is over the expected rewards over all arms. Therefore, \autoref{eq:cum_regret_ts_to_nts_total_variation_convergence} depends on the total number of observations across all arms $t=\sum_{a \in \A} t_a$, where $t_a$ indicates the number of observations observed for each arm $\forall a\in \A$.
+	
+	The behavior of posterior distributions for infinite dimensional models has been thoroughly studied at the beginning of this century, with work by~\citet{j-Ghosal2001,j-Ghosal2007} providing posterior convergence rates of Dirichlet process Gaussian mixtures to different mixture distributions.
+	
+	For example, for a mixture of normals with standard deviations bounded by two positive numbers, ~\citet{j-Ghosal2001} show that the Hellinger distance between the nonparametric posterior given $n$ data samples and the true distribution is asymptotically bounded,
+	\begin{equation}
+	d(\ptilde,\pstar) \leq M n^{-1/2}(\log n)^\kappa \; ,
+	\label{eq:nonparametric_basic_bound}
+	\end{equation}
+	where the value $\kappa \geq 0$ depends on the choices of priors over the location and scale of the mixtures, and data is drawn from the true distribution $\pstar$. Since $\|p-q\|_1 \leq 2 d(p,q)$, bounds in Hellinger distance apply to total variation distance as well. Note that the convergence of the posterior at such rate also implies that there exist estimators, such as the posterior mean, that converge at the same rate in the frequentist sense.
+	
+	Technical details of the bound in Equation~\eqref{eq:nonparametric_basic_bound} can be found in~\citep{j-Ghosal2001}, where they consider Gaussian location mixtures and location-scale mixtures, assumed the standard deviations to be bounded away from zero and infinity, and that the true mixing distribution of the location is compactly supported or has sub-Gaussian tails.
+	
+	A rate with $\kappa=1$ is obtained when a compactly supported base measure is used for the location prior (and the scale prior has a continuous and positive density on an interval containing the true scale parameter).
+	For the commonly used normal base measure, the bound yields a rate $O(n^{-1/2}(\log n)^{3/2})$.
+	When the base measure is the product of a normal distribution with a distribution supported within the range of the true scale, such that the density is positive on a rectangle containing the true location-scale space, the rate results in $O(n^{-1/2}(\log n)^{7/2})$.
+	
+	Later work by~\citet{j-Ghosal2007} provides new posterior convergence rates for densities that are twice continuously differentiable, where under some regularity conditions, the posterior distribution based on a Dirichlet mixture of normal prior attains a convergence rate of $O(n^{-2/5}(\log n)^{4/5})$.
+	As such, it seems reasonable that the power of the logarithm, \ie $\kappa$ in Equation~\eqref{eq:nonparametric_basic_bound}, can be improved.
+	~\citet{j-Ghosal2007} argue that, by using a truncated inverse gamma prior on the scale of the Gaussian mixtures, a nearly optimal convergence rate is obtained ---for which one would need to extend the Gibbs sampler with an additional accept-reject step to take care of the scale truncation.
+	
+	All these bounds would not be directly applicable if the true data generating density would not be part of the model classes considered.
+	However, ~\citet{j-Ghosal2001} argue that a rate for these cases may as well be calculated, but since they may not be close to the optimal rate, have not been pursued yet.
+
+	\item in \autoref{eq:cum_regret_ts_to_nts_rearrange_sum_bound_logT}: $(\log t)^{\kappa} \leq (\log T)^{\kappa}, \forall 1 \leq t \leq T, \kappa \geq 0$.
+
+	\item in \autoref{eq:cum_regret_ts_to_nts_sum_t_integral}: $\sum_{t=1}^{T} t^{-1/2} = \mathbb{H}^{1/2}(T)\leq \int_{t=1}^{T} t^{-1/2} \dd{t}$, where $\mathbb{H}$ is the generalized harmonic number of order $1/2$ of $T$. 
+\end{itemize}
+
+%\newpage
+Combining the above results, we can now bound the asymptotic cumulative regret in \autoref{eq:cum_regret_optimal_to_nts}, for a nonparametric Thompson sampling policy with Dirichlet process Gaussian mixtures, with priors and data-generating densities that meet the necessary regularity conditions:
+\vspace*{-1ex}
+\begin{align}
+R_T 
+&=\sum_{t=1}^T \eValue{\pi_{\pstar},\pi_{p}}{\eValue{\pstar}{ Y_{t,\Astar_t}-Y_{t,A_t}}} \nonumber \\
+& \qquad + \sum_{t=1}^T \eValue{\pi_{p},\pi_{\ptilde}}{\eValue{\pstar}{ Y_{t,A_t}-Y_{t,\Atilde_t}}} \\
+&\leq \mathcal{O} \left(2 C_A C_p |\A| \sqrt{T} + 2 C_A C_{\ptilde} |\A| (\log T)^\kappa\sqrt{T} \right)\\
+&\leq \mathcal{O} \left(2 C_A |\A| \sqrt{T} (C_p + C_{\ptilde} (\log T)^\kappa ) \right) \\
+&\leq \mathcal{O} |\A| \sqrt{T} (\log T)^\kappa \;.
+\end{align}
+We note that this bound holds both in a frequentist and Bayesian view of expected cumulative regret.
+\end{proof} 
+

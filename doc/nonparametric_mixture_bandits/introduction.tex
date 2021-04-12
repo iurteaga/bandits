@@ -1,0 +1,63 @@
+% !TEX root = main.tex
+Sequential decision making aims to optimize interactions with the world (exploit), while simultaneously learning how the world operates (explore). The origins of the study of the exploration-exploitation trade-off can be traced back to the beginning of the past century, with important contributions within the field of statistics by~\citet{j-Thompson1935} and later~\citet{j-Robbins1952}.
+The multi-armed bandit (MAB) is a natural abstraction for a wide variety of real-world challenges that require learning while simultaneously maximizing rewards~\citep{b-Lattimore2020}. The name `bandit' finds its origin in the playing strategy one must devise when facing a row of slot machines~\citep{j-Lai1985}. The contextual MAB, where at each interaction with the world side information (known as `context') is available, is a natural extension of the bandit problem. Recently, a renaissance of the study of MAB algorithms has flourished~\citep{ip-Agrawal2012,ip-Maillard2011}, attracting interest from industry as well, due to its impact in digital advertising and products~\citep{ip-Li2010}. 
+
+\citet{j-Thompson1933} sampling %, also known as posterior sampling~\cite{j-Russo2014}, 
+provides an elegant approach that tackles the exploration-exploitation dilemma in MABs. It updates a posterior over expected rewards for each arm, and chooses actions based on the probability that they are optimal. It has been empirically and theoretically proven to perform competitively for MAB models within the exponential family~\citep{ip-Agrawal2013a,ip-Agrawal2013,ic-Korda2013}. Its applicability to the more general reinforcement learning setting of Markov decision processes~\citep{j-Burnetas1997} has recently tracked momentum as well~\citep{ip-Gopalan2015,ic-Ouyang2017}.
+
+Thompson sampling, and the Bayesian approach to the MAB problem, facilitate not only generative and interpretable modeling, but sequential and batch processing as well.
+A Thompson sampling policy requires access to posterior samples of the model.
+Unfortunately, maintaining such posterior is intractable for distributions not in the exponential family~\citep{j-Russo2018}.
+Therefore, developing practical MAB methods to balance exploration and exploitation in real-life domains that might not pertain to such reward family remains largely unsolved.
+
+In an effort to extend Thompson sampling to more complex scenarios, researchers have considered other flexible reward functions and Bayesian inference.
+Recent approaches have embraced Bayesian neural networks and approximate inference for Thompson sampling. Variational methods, stochastic mini-batches, and Monte Carlo techniques have been studied for uncertainty estimation of reward posteriors~\citep{ip-Blundell2015, ic-Kingma2015, ip-Lipton2018, ic-Osband2016, ip-Li2016}.
+
+~\citet{ip-Riquelme2018} have benchmarked such techniques and reported that neural networks with approximate inference, even if successful for supervised learning, under-perform in the MAB setting. In particular, they emphasize the issue of adapting the slow convergence uncertainty estimates of neural network based methods to MABs.
+In parallel, others have focused on extending Thompson sampling by targeting alternative classes of reward functions, such as approximating the unknown bandit reward functions with Gaussian mixture models~\citep{ip-Urteaga2018}; or maintaining and incrementally updating an ensemble of plausible models that approximates the (otherwise intractable) posterior distribution of interest~\citep{ip-Lu2017}.
+
+An alternative view of Thompson sampling relies on the notion that posterior sampling can be viewed as a perturbation scheme that is sufficiently optimistic.
+This point was noted by~\citet{ip-Agrawal2013, ip-Agrawal2013a}, and several authors have analyzed how estimating the bandit reward means with a follow-the-perturbed-leader exploration approach can be successful in the bandit setting.
+Bootstrapping techniques that use a combination of observed and artificially generated data have been introduced for the multi-armed bandit and reinforcement learning problems by~\citet{j-Osband2015,j-Eckles2019}.
+Bootstrapping over artificial data induces a prior distribution that is critical for effective exploration.
+Recently, pseudo-rewards based bootstrapping has also been studied for the multi-armed bandit setting~\citep{ip-Kveton2019,ip-Kveton2019a}, where the pseudo-rewards are used to increase the variance of the bootstrap mean, leading to exploration.~\citet{ip-Kveton2019} show how these pseudo-rewards introduce bias that has to be controlled, which their proposed algorithm achieves, resulting in sublinear regret for Bernoulli bandits.
+%A similar perturbed-history exploration based algorithm for the safe online learning to re-rank problem is introduced in~\cite{ip-Li2020}.
+
+In our work, we explore a different route, in which instead of following the perturbation scheme view of posterior sampling, we focus on the Bayesian generative modeling view of Thompson sampling. Even if, for bandit regret minimization, proper modeling of the full reward distributions may not be in general necessary, we defend that a statistical modeling-based approach, which leverages the advances on nonparametric density estimation within statistics, can be performant in the multi-armed bandit setting.
+
+We argue that modeling bandit reward distributions via nonparametric Bayesian mixtures, which adjust to the complexity of the underlying reward model, can provide successful bandit performance. 
+Our contribution is on exploiting Bayesian nonparametric mixture models for Thompson sampling to perform MAB optimization. 
+To that end, we propose to combine Thompson Sampling with nonparametric Bayesian mixture models that can accommodate continuous reward functions, and develop a Thompson sampling algorithm that ---without incurring on model misspecification--- adapts to a wide variety of complex bandits.
+
+Bayesian nonparametrics have been considered for MAB problems to accommodate continuous actions via Gaussian processes (GPs)~\citep{ip-Srinivas2010,ip-Gruenewaelder2010,ic-Krause2011}, or to allow for an unknown yet countable number of actions via hierarchical Pitman-Yor processes~\citep{j-Battiston2018}.
+GPs are powerful nonparametric methods for modeling distributions over continuous functions~\citep{b-Rasmussen2005}, and have been used to model a continuum of MAB actions~\citep{ic-Krause2011}.
+Exact inference with GPs is computationally demanding ---it scales cubically in the number of observations--- limiting their applicability to the online setting, even if advancements such as pseudo-observations~\citep{ic-Snelson2006} or variational inference~\citep{ip-Titsias2009} can mitigate these shortcomings. 
+Alternatively, \citet{j-Battiston2018} consider MABs with a discrete but unknown action space, and propose a hierarchical Pitman-Yor process for the unknown populations, with per-arm Bernoulli reward distributions. In this work, we are not interested in a nonparametric prior over arms (with specific per-arm reward distributions), but in MABs with a discrete set of actions, for which there is uncertainty on the per-arm reward model.
+
+We propose to account for reward model uncertainty by combining the flexibility of Bayesian nonparametrics with the large hypothesis space of mixture models. In many contexts, a countably infinite mixture is a very realistic model to assume, and has been shown to succeed in modeling a diversity of phenomena~\citep{j-Gershman2012}. Nonparametric processes are useful priors for Bayesian density estimation. Within such framework, one uses nonparametric prior distributions over the mixing proportions, such as Dirichlet or Pitman-Yor processes~\citep{j-Teh2010}.
+
+These models do not only avoid explicitly specifying the number of mixtures, but allow for an unbounded number of mixtures to appear as data are observed. The important issue of nonparametric posterior consistency, with convergence guarantees for a wide class of mixture models, has already been settled~\citep{j-Ghosal1999, j-Ghosal2001, j-Lijoi2004, j-Ghosal2007}.
+
+We here model each of the MAB arm reward functions with per-arm nonparametric mixture models, \ie the complex unknown mapping of the observed per-arm rewards is estimated with nonparametric Gaussian mixture models. By means of a Bayesian nonparametric model, we can accurately approximate continuous reward distributions, yet have analytically tractable inference and online update rules, which allow for sequential adjustment of the complexity of the model to the observed data.
+For learning such a nonparametric distribution within the MAB setting, we leverage the well-established advances in Markov chain Monte Carlo methods for Bayesian nonparametric models~\citep{j-Neal2000}.
+
+It is both the combination of nonparametric Bayesian mixture models with Thompson sampling (\ie merging statistical advances with a state-of-the art bandit algorithm), as well as the resulting flexibility and generality (\ie avoiding model misspecification) that is novel in this work.
+We note that the generative interpretation of Bayesian nonparametric processes aligns well with the sequential nature of the MAB problem.
+To the best of our knowledge, no other work uses Bayesian nonparametric mixtures to model per-arm reward functions in contextual MABs.
+
+Our specific contributions are:
+\begin{enumerate}
+	\item To propose a unique, yet flexible Thompson sampling-based bandit method that learns the Bayesian nonparametric mixture model that best approximates the true, but unknown, underlying reward distribution per-arm, adjusting its complexity as it sequentially observes data.
+	
+	\item An asymptotic regret bound for the proposed Thompson sampling algorithm, which assumes a Dirichlet process Gaussian mixture model prior, of order $O(|\A| \log^\kappa T \sqrt{T})$; where $|\A|$ denotes the number of bandit arms, $T$ the number of agent iterations with the environment, and the constant $\kappa\geq 0$ depends on the tail behavior of the true reward distribution and the priors of the Dirichlet process.
+	
+	\item To demonstrate empirically that the proposed nonparametric Thompson sampling method: 
+	\begin{enumerate}
+		\item attains reduced regret in complex MABs ---with different unknown per-arm distributions not in the exponential family--- when compared to state-of-the art baseline bandit algorithms; and
+		\item is as good as an Oracle (i.e., one that knows the true underlying model class) that implements a Thompson sampling policy, \ie the proposed per-arm nonparametric posterior densities quickly converge to the true unknown distributions, incurring in minimal additional bandit regret.
+	\end{enumerate}	
+\end{enumerate}
+
+These contributions are valuable for bandit scenarios in the presence of model uncertainty, \ie in real-life.
+The same algorithm ---which automatically adjusts its complexity to the observed bandit data--- is run for complex (not in the exponential family) multi-armed bandits.
+The proposed Thompson sampling method avoids hyperparameter tuning and case-by-case reward model design choices (bypassing model mispecification) yet attains reduced regret.

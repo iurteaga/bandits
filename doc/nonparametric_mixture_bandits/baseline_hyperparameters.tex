@@ -1,0 +1,83 @@
+\section{Thompson sampling baseline hyperparameters}
+\label{asec:evaluation_hyperparameters}
+
+We here collect the specific hyperparameters used for the results presented in this work. These were selected based on the default suggested values in \href{https://github.com/tensorflow/models/tree/master/research/deep_contextual_bandits}{https://github.com/tensorflow/models/tree/master/research/deep\_contextual\_bandits}.
+
+We first describe in Table~\ref{tab:neural_network_hyperparameters} the neural network hyperparameters, shared across all the studied alternatives but the \texttt{linearGaussian TS} and the \texttt{MultitaskGP} baselines.
+
+\begin{table}[!h]
+	\caption{Shared neural network hyperparameters.}
+	\label{tab:neural_network_hyperparameters}
+	\vspace*{-2ex}
+	\begin{center}
+		\begin{tabular}{|c|c|}
+			\hline
+			Hyperparameter\cellcolor[gray]{0.6} & Value \cellcolor[gray]{0.6} \\ \hline
+training freq & 1 \\ \hline
+training epochs & 100 \\ \hline
+activation & tf.nn.relu \\ \hline
+layer size & 50 \\ \hline
+batch size & 512 \\ \hline
+init scale & 0.3 \\ \hline
+optimizer & `RMS' \\ \hline
+initial pulls & 2 \\ \hline
+activate decay & True \\ \hline
+max grad norm & 5.0 \\ \hline
+initial lr & 0.1 \\ \hline
+reset lr & True \\ \hline
+lr decay rate & 0.5 \\ \hline
+show training & False \\ \hline
+freq summary & 1000 \\ \hline
+		\end{tabular}
+	\end{center}
+\end{table}
+
+The specific details for each neural network based baseline are summarized in Table~\ref{tab:neural_network_baselines}, with details for the Gaussian process based baseline in Table~\ref{tab:gp_hyperparameters}.
+
+\begin{table}[!h]
+	\caption{Shared neural network hyperparameters.}
+	\label{tab:neural_network_baselines} 
+	\vspace*{-2ex}
+	\begin{center}
+	\begin{tabular}{|L{0.4\columnwidth}|J{0.5\columnwidth}|}
+	\hline
+Algorithm \cellcolor[gray]{0.6} & Baseline details \cellcolor[gray]{0.6} \\ \hline
+\texttt{NeuralLinear}        	 & The network and the posterior parameter of the last layer are updated at every bandit iteration;
+									Prior over linear parameters is $a_0=6$, $b_0=6$, $\lambda_0=0.25$ \\ \hline
+\texttt{NeuralRMS}           	 & Neural network learned with RMS optimizer with default parameters \\ \hline
+\texttt{NeuralBootstrapped}   	 & $q=3$ networks and datasets for bootstrapping, with $p=0.95$ \\ \hline
+\texttt{NeuralParamNoise}     	 & The \iid noise added to parameters follow $\N{0,\sigma=0.05}$, and an $\epsilon=0.1$ greedy is implemented with 300 samples\\ \hline
+\texttt{NeuralDropoutRMS}    	 & Dropout with parameter $0.8$ is used for training neural networks with RMS optimizer \\ \hline
+\texttt{BNNVariationalGaussian}  & Variational inference over Gaussian independent weight noises with sigma exponential transform and noise $\sigma=0.1$; 100 initial training steps and 10 cleared times used in training.\\ \hline
+\texttt{BNNAlphaDiv}         	 & The Black-Box method is used with $\alpha=1$, noise $\sigma=0.1$ and $k=20$, with sigma exponential transform and prior variance $\sigma^2=0.1$; 100 initial training steps and 20 cleared times used in training. \\ \hline
+	\end{tabular}
+	\end{center}
+\end{table}
+
+\begin{table}[!h]
+	\caption{Gaussian Process hyperparameters.}
+	\label{tab:gp_hyperparameters}
+	\vspace*{-2ex}
+	\begin{center}
+		\begin{tabular}{|c|c|}
+			\hline
+			Hyperparameter\cellcolor[gray]{0.6} & Value \cellcolor[gray]{0.6} \\ \hline
+training freq & 50 \\ \hline
+training epochs & 100 \\ \hline
+learn embeddings & True \\ \hline
+task latent dim & 5 \\ \hline
+max num points & 1000 \\ \hline
+batch size & 512 \\ \hline
+optimizer & `RMS' \\ \hline
+initial pulls & 2 \\ \hline
+lr & 0.01 \\ \hline
+initial lr & 0.001 \\ \hline
+lr decay rate & 0.0 \\ \hline
+reset lr & False \\ \hline
+activate decay & False \\ \hline
+keep fixed after max obs & True \\ \hline
+show training & False \\ \hline
+freq summary & 1000 \\ \hline
+		\end{tabular}
+	\end{center}
+\end{table}

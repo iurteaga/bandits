@@ -1,0 +1,31 @@
+% !TEX root = main.tex
+\section{Contextual bandits not in the exponential family}
+\label{asec:mixture_baselines}
+
+We show in Table~\ref{tab:mixture_scenarios_bandit_showdown_baselines_reward} the mean (and standard deviation) cumulative regret of all the studied multi-armed bandit algorithms in the proposed complex scenarios described in Section~\ref{sssec:evaluation_mixture_scenarios_baselines}.
+
+% Mixture bandit reward table
+\begin{table*}
+	\caption{Final (at $t=1000$) cumulative reward (mean and standard deviation) for $R=500$ realizations of the studied methods in all scenarios.}
+	\label{tab:mixture_scenarios_bandit_showdown_baselines_reward}
+	\vspace*{-2ex}
+	\begin{center}
+		\resizebox{\textwidth}{!}{
+		\begin{tabular}{|c|c|c|c|c|}
+			\hline
+			Algorithm 	\cellcolor[gray]{0.6} & \texttt{Scenario A} \cellcolor[gray]{0.6} & \texttt{Scenario B} \cellcolor[gray]{0.6} & \texttt{Scenario C} \cellcolor[gray]{0.6} & \texttt{Scenario D} \cellcolor[gray]{0.6} \\ \hline
+			\texttt{Optimal}       	& 2603.637 $\pm$ 43.871 & 2703.374 $\pm$ 48.053 &  2920.616 $\pm$ 47.294 &  3511.531 $\pm$ 137.860 \\ \hline
+			\texttt{Nonparametric TS}  &   	 2481.226 $\pm$ 46.969 & 2064.933 $\pm$ 70.063 &  2155.669 $\pm$ 86.414 &  1916.523 $\pm$ 176.516 \\ \hline
+			\texttt{LinearGaussian TS}  &   	 2477.374 $\pm$ 46.967 & 2043.161 $\pm$ 87.453 &  2124.920 $\pm$ 98.306 &  1846.032 $\pm$ 289.280 \\ \hline
+			\texttt{NeuralLinear}   &      	 2474.973 $\pm$ 47.411 & 2023.889 $\pm$ 95.728 &  2102.640 $\pm$ 111.766 &  1786.915 $\pm$ 316.087 \\ \hline
+			\texttt{NeuralBootstrapped} &   	 2477.389 $\pm$ 134.222 & 1959.900 $\pm$ 212.630 &  2008.643 $\pm$ 296.424 &  1846.672 $\pm$ 478.053 \\ \hline
+			\texttt{NeuralRMS}         &    	 2478.773 $\pm$ 134.110 & 1953.925 $\pm$ 218.489 &  2001.024 $\pm$ 299.355 &  1808.436 $\pm$ 532.736 \\ \hline
+			\texttt{NeuralDropoutRMS} &    	 2473.140 $\pm$ 165.730 & 1954.019 $\pm$ 215.282 &  2000.544 $\pm$ 302.480 &  1829.687 $\pm$ 495.924 \\ \hline
+			\texttt{NeuralParamNoise} &    	 2476.161 $\pm$ 134.467 & 1970.443 $\pm$ 196.946 &  2032.456 $\pm$ 262.984 &  1822.056 $\pm$ 513.216 \\ \hline
+			\texttt{MultitaskGP}      &    	 2384.541 $\pm$ 56.206 & 1954.318 $\pm$ 71.298 &  1957.400 $\pm$ 87.940 &  1332.580 $\pm$ 227.129 \\ \hline
+			\texttt{BNNVariationalGaussian} & 2471.688 $\pm$ 158.345 & 1927.741 $\pm$ 176.984 &  1984.950 $\pm$ 250.108 &  1659.067 $\pm$ 388.108 \\ \hline
+			\texttt{BNNAlphaDiv}       &   	 2431.362 $\pm$ 52.776 & 1904.173 $\pm$ 66.993 &  1896.702 $\pm$ 83.000 &  1751.989 $\pm$ 206.198 \\ \hline			
+		\end{tabular}
+	}
+	\end{center}
+\end{table*}

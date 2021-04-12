@@ -1,0 +1,151 @@
+\documentclass{article}
+\usepackage[margin=1.5in]{geometry}
+
+% insert here the call for the packages your document requires
+%\usepackage{latexsym}
+% Formatting
+\usepackage{hyperref}       % hyperlinks
+\usepackage{url}            % simple URL typesetting
+\usepackage{enumitem}
+\usepackage{ifthen}
+\usepackage{sidecap}
+\usepackage{helvet}
+\usepackage{afterpage}
+% Package added for words that contain a dash use \-/
+\usepackage[shortcuts]{extdash}
+\usepackage[htt]{hyphenat}
+% Math
+\usepackage{amsmath}
+\usepackage{amsfonts}	% blackboard math symbols
+\usepackage{mathtools}	% For \coloneq
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{dsfont} % Indicator that works with Type1
+
+% Graphics
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{wrapfig}
+\usepackage{float} %Stay where told
+
+% Tables
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{multirow} % to be able to have multiple row expanding cell
+\usepackage[table]{xcolor}
+\usepackage{arydshln} % For hdashline% New column types, left/center/right text aligned, given horizontal width
+\usepackage{ragged2e} % To justify table text
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+% For some reason, justify seems to add some vertical space, remove with vspace
+\newcolumntype{J}[1]{>{\vspace*{-2ex}\justify\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+% Algorithms
+\usepackage{algorithm}
+\usepackage{algorithmic}
+% Theorems/lemmas
+\usepackage{amsthm}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{corollary}{Corollary}[theorem]
+\newtheorem{lemma}[theorem]{Lemma}
+
+% To draw graphs (load after xcolor to avoid options clash)
+\usepackage{tikz}
+\usetikzlibrary{bayesnet} % Library for bayesian networks
+
+% Bibliography
+\usepackage{natbib}
+% To be able to have references in 2 columns with equal length
+\usepackage{flushend}
+% etc.
+%
+% please place your own definitions here and don't use \def but \newcommand{}{}
+\input{my_definitions}
+
+%%%%%%%% end iurteaga %%%%%%%% 
+
+\title{Nonparametric Gaussian Mixture Models \\ for the Multi-Armed Contextual Bandit}
+
+\author{ I\~{n}igo Urteaga and Chris H.~Wiggins\\
+	{\sf \{inigo.urteaga, chris.wiggins\}@columbia.edu} \\\\
+	Department of	Applied Physics and Applied Mathematics\\
+	Data Science Institute\\
+	Columbia University\\
+	New York City, NY 10027
+}
+
+\begin{document}
+	
+\maketitle
+
+\begin{abstract}
+We here adopt Bayesian nonparametric mixture models to extend multi-armed bandits in general, and Thompson sampling in particular, to scenarios where there is reward model uncertainty. In the stochastic multi-armed bandit, where an agent must learn a policy that maximizes long term payoff, the reward for the selected action is generated from an unknown distribution. Thompson sampling is a generative and interpretable multi-armed bandit algorithm that has been shown both to perform well in practice, and to enjoy optimality properties for certain reward functions. Nevertheless, Thompson sampling requires knowledge of the true reward model, for calculation of expected rewards and sampling from its parameter posterior. In this work, we extend Thompson sampling to complex scenarios where there is model uncertainty, by adopting a very flexible set of reward distributions: Bayesian nonparametric Gaussian mixture models. The generative process of Bayesian nonparametric mixtures naturally aligns with the Bayesian modeling of multi-armed bandits: the nonparametric model autonomously determines its complexity as new rewards are observed for the played arms. By characterizing each arm's reward distribution with independent nonparametric mixture models, the proposed method sequentially learns the model that best approximates the true underlying reward distribution, achieving successful performance in complex ---not in the exponential family--- bandits. Our contribution is valuable for practical scenarios, as it avoids stringent case-by-case model specifications and hyperparameter tuning, yet attains reduced regret in diverse bandit settings.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+\input{introduction}
+
+\section{Background}
+\label{sec:background}
+\input{background}
+
+\section{Bayesian nonparametric Thompson sampling}
+\label{sec:proposed_method}
+\input{method}
+
+\section{Evaluation}
+\label{sec:evaluation}
+\input{evaluation}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+We contribute to the field of sequential decision processes by proposing a Bayesian nonparametric mixture model based Thompson sampling.
+We merge advances in the field of Bayesian nonparametrics with a state-of-the art MAB policy (\ie Thompson sampling), allowing for its extension to complex multi-armed bandit domains where there is model uncertainty.
+
+The proposed algorithm provides flexible modeling of convoluted reward functions with convergence guarantees, and attains the exploration-exploitation trade-off in complex MABs with minimal assumptions.
+
+We provide an asymptotic upper bound for the expected cumulative regret of the proposed Dirichlet process Gaussian mixture model based Thompson sampling.
+
+In addition, empirical results show improved cumulative regret performance of the proposed nonparametric Thompson sampling in challenging domains ---where there is model uncertainty--- remarkably adjusting to the complexity of the underlying bandit in an online fashion ---bypassing model mispecification and hyperparameter tuning.
+
+Important savings are attained for complex bandit settings (\eg unbalanced and heavy tailed reward distributions, and bandits with different per-arm reward distributions), where alternative methods struggle.
+
+The competitive advantage lies on the capacity of Bayesian nonparametrics to adjust the complexity of the posterior density to the sequentially observed bandit data.
+With the ability to sequentially learn the Bayesian nonparametric mixture model that best approximates the true reward distribution ---not necessarily in the exponential family--- the proposed method can be applied to diverse MAB settings without stringent model specifications and attain reduced regret.
+
+A future direction is to tighten the presented regret bound, as well as to apply the proposed method to real-life MAB applications where complex models are likely to outperform simpler ones.
+
+% BibTeX users please use one of
+%\bibliography{../literature}   % name your BibTeX data base
+% Select a .bst file for the style
+\bibliographystyle{abbrvnat}
+% For submission, need to paste the .bbl content here
+\input{main.bbl}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Appendix
+\clearpage
+\appendix
+
+\input{nonparametric_hierarchical_mixture_model}
+
+\input{regret_bound_proof}
+
+\clearpage
+\input{noncontextual_gaussian_bandits}
+
+\input{baseline_hyperparameters}
+
+\clearpage
+\input{linear_MAB_baselines}
+
+\input{mixture_MAB_baselines}
+
+\input{running_times}
+
+\end{document}
+% end of file template.tex
+

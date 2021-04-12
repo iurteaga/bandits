@@ -1,0 +1,216 @@
+% !TEX root = main.tex
+We combine Bayesian nonparametric mixture models with Thompson sampling for MABs under model uncertainty. We consider an independent set of nonparametric mixture models $G_{a}$ per-arm (with their own hyperparameters $d_a$,$\gamma_a$, and base measure $G_{a,0}$) allowing for flexible, potentially different, reward distributions for each arm $a\in\A$ of the MAB.
+The graphical model of the Bayesian nonparametric bandit is rendered in Figure~\ref{fig:pgm_nonparametric_bandit}, where we assume complete independence of each arm's reward distribution.\footnote{An alternative model would be to consider a hierarchical nonparametric model~\citep{j-Teh2006,j-Teh2010}, where all arms are assumed to obey the same family of distributions, but only their mixture proportions vary across arms. We provide details of this alternative model in Section~\ref{asec:nonparametric_hierarchical_mixture_model} of the Appendix.}
+
+% Nonparametric bandit graphical model
+\begin{figure}[!h]
+	\begin{center}
+			\input{nonparametric_mixture_bandit_pgm_indep_horizontal}
+		\caption{The Bayesian nonparametric mixture bandit, as a probabilistic graphical model.}
+		\label{fig:pgm_nonparametric_bandit}
+		\vspace*{-4ex}
+	\end{center}
+\end{figure}
+
+By characterizing each arm of the bandit with a different nonparametric model, we enjoy full flexibility to estimate each per-arm distribution independently, covering MAB cases with distinct reward model classes per-arm. This setting is a very powerful extension of the MAB problem, which has not attracted interest so far, yet can circumvent model misspecification.
+
+At every interaction of the MAB agent with the environment, reward $y_{t,a_t}$ is \iid drawn from a context dependent unknown distribution $Y_{t,a_t}\sim p(Y|a_t,x_t,\thetastar)$ of the played arm $a_t$, which we here approximate via Bayesian nonparametric mixture models~\citep{b-Ghosal2017}.
+
+Specifically, we model context-conditional reward densities with nonparametric Gaussian mixtures per-arm, \ie
+\begin{align}
+Y_{t,a} \sim p(Y|a,x_t,\varphi_a) &= \sum_{k=1}^{K_a} \frac{n_{a,k}-d_a}{n_a+\gamma_a} \cdot \N{Y|x_{t}^\top w_{a,k}, \sigma_{a,k}^2} \nonumber \\
+& \qquad + \frac{\gamma_a+K_ad_a}{n_a+\gamma_a} \N{Y|x_{t}^\top w_{a,k_{new}}, \sigma_{a,k_{new}}^2} \;,
+\label{eq:nonparametric_Gaussian_mixture}
+\end{align}
+where the number of mixands $K_a$ is determined by independent per-arm Pitman-Yor processes: $n_{a,k}$ refers to the rewards observed after playing arm $a$ that are assigned to mixture $k$, and $n_a=\sum_{k=1}^{K_a}n_{a,k}$.
+After $n_{a}$ observations for arm $a$, there are $K_a$ already `\textit{seen}' mixtures, and a probability of $\frac{\gamma_a+K_ad_a}{n_a+\gamma_a}$ of incorporating a new mixand $k_{new}$ to the mixture.
+
+Eqn.~\eqref{eq:nonparametric_Gaussian_mixture} describes per-arm nonparametric Gaussian mixture densities, with a Pitman-Yor nonparametric prior as described in Eqn.~\eqref{eq:pitman_yor_mixture}.
+Each per-arm distribution is modeled independently with per-arm specific parameterizations: $d_a$, $\gamma_a$, $\varphi_{a,k}=\{w_{a,k}, \sigma_{a,k}^2 \}$, for $k={1,\cdots, K_a}$. 
+
+The proposed contextual nonparametric model relies on leveraging context-conditional Gaussian models (with an expected value that is linearly dependent on the context at time $t$, \ie $\mu_{t,a,k}=x_t^\top w_{a,k}$), and extending them to a potentially infinite mixture.
+As the number of mixands $K_a$ grows, the nonparametric distribution can be non-linear in the context.
+
+With the proposed per-arm nonparametric mixture of Gaussian densities, we make a very flexible reward model assumption that automatically adjusts to the observed data: we are nonparametrically estimating complex, unknown per-arm continuous reward densities.
+We leverage the well known linear Gaussian model and allow for the nonparametric model to accommodate as many mixands as necessary to best describe the observed bandit data.
+
+The proposed Bayesian nonparametric model provides a flexible approach to density estimation, which can arbitrarily approximate continuous distributions. 
+The Bayesian nonparametric literature has already established strong convergence results on the density estimation properties of these models: for a wide class of continuous distributions, the nonparametric posterior converges to the true data-generating density, under mild regularity conditions~\citep{j-Ghosal1999, j-Lijoi2004, j-Tokdar2006, j-Ghosal2007, j-Bhattacharya2010, j-Pati2013}.
+
+In theory, the proposed Bayesian nonparametric model is on an infinite-dimensional parameter space (\ie the Pitman-Yor process can accommodate countably infinite mixands).
+In practice, the model as in Eqn.~\eqref{eq:nonparametric_Gaussian_mixture} will use a finite subset of the available parameter dimensions to explain a finite sample of observations: \ie it sets the number of mixands per-arm $K_a$ according to the observed per-arm rewards.
+Consequently, the effective complexity of the resulting model (\ie the dimensionality $K_a$ in Eqn.~\eqref{eq:nonparametric_Gaussian_mixture}) adapts to the observed data.
+
+\subsection{Nonparametric context-conditional Gaussian mixture model posterior}
+\label{ssec:nonparametric_posterior_update}
+
+We now derive the procedure for inference of the per-arm, context-dependent reward posterior density of the proposed Bayesian nonparametric Gaussian mixture model.
+As outlined in Section~\ref{ssec:background_nonparametric_mixture_model}, we rely on auxiliary latent variables per-arm $z_{1:n_a}$, and implement a Gibbs sampler that iterates between sampling mixture assignments $z_{1:n_a}$, and updating the emission distribution parameter posterior $G_{n_{a,k}}(\varphi_{a,k})$ for each arm and mixture. 
+
+We start with the derivation of the parameter posteriors.
+Per-arm and per-mixand emission distributions in Eqn.~\eqref{eq:nonparametric_Gaussian_mixture} are context-conditional Gaussian densities
+\begin{equation}
+\N{Y|x^\top w_{a,k}, \sigma_{a,k}^2} \; ,
+\end{equation}
+where $x^\top w_{a,k}$ and $\sigma_{a,k}^2$ are the means and variances, respectively, of the $k$-th mixand of arm $a$ in round $t$.
+The conjugate prior of each of the mixands is a Normal-inverse Gamma,
+\begin{equation}
+G_{a,0}(\varphi_a) = \NIG{w_a, \sigma_a^2 |U_{a,0}, V_{a,0},\alpha_{a,0}, \beta_{a,0}} \;, 
+\end{equation}
+with hyperparameters $\varPhi_{a,0}=\{U_{a,0}, V_{a,0},\alpha_{a,0}, \beta_{a,0}\}$.
+
+After observing rewards $y_{1:n}$, and conditioned on the auxiliary assignment variables $z_{1:n_a}$, the posteriors of per-arm and mixand parameters $\varphi_{a,k}$ follow a Normal-inverse Gamma distribution with updated hyperparameters $\varPhi_{a,k,n_{a,k}}$:
+\begin{align}
+G_{a,n_{a,k}}(\varphi_{a,k}) &=\NIG{w_{a,k}, \sigma_{a,k}^2 |\varPhi_{a,k,n_{a,k}}} \;, \\
+\varPhi_{a,k,n_{a,k}}& =\{U_{a,k,n_{a,k}}, V_{a,k,n_{a,k}},\alpha_{a,k,n_{a,k}}, \beta_{a,k,n_{a,k}} \} \;, \nonumber
+\end{align}
+that depend on the number $n_{a,k}$ of rewards observed after playing arm $a$ that are assigned to mixand $k$. Specifically,
+\begin{equation}
+\begin{cases}
+V_{a,k,n_{a,k}}^{-1} = x_{1:n} R_{a,k} x_{1:n}^\top + V_{a,0}^{-1} \;,\\
+U_{a,k,n_{a,k}}= V_{a,k,n_{a,k}} \left( x_{1:n} R_{a,k} y_{1:n} + V_{a,0}^{-1} U_{a,0}\right) \;, \\
+\alpha_{a,k,n_{a,k}} = \alpha_{a,0} + \frac{1}{2} \tr{R_{a,k}} \;, \\
+\beta_{a,k,n_{a,k}} = \beta_{a,0} + \frac{1}{2}\left(y_{1:n}^\top R_{a,k}y_{1:n} \right) + \frac{1}{2}\left( U_{a,0}^\top V_{a,0}^{-1} U_{a,0} - U_{a,k,n_{a,k}}^\top V_{a,k,n_{a,k}}^{-1} U_{a,k,n_{a,k}} \right) \; ,
+\end{cases}
+\label{eq:posterior_hyperparameters}
+\end{equation}
+where $R_{a,k}\in\Real^{n_a\times n_a}$ is a sparse diagonal matrix with elements $\left[R_{a,k}\right]_{i,i}=\mathds{1}[a_i=a,z_i=k]$ for $i=\{0,\cdots, n_a\}$, and $n_{a}=\sum_{k=1}^{K_a} n_{a,k}$ is the number of rewards observed after playing arm $a$. The number of mixands per-arm $K_a$ of the bandit is independently drawn from its own Pitman-Yor process. Note that the above expression can be computed sequentially as data are observed for the played arm.
+
+The predictive emission distribution after marginalization of the parameters $\varphi_{a,k}$, needed for solving Eqn.~\eqref{eq:gibbs_mixture_assignment}, follows a conditional Student-t distribution
+\begin{align}
+p_{a,k}(Y|a,x,\varPhi_{a,k,,n_{a,k}}) &= \T{Y|\nu_{a,k,n_{a,k}}, m_{a,k,n_{a,k}}, r_{a,k,n_{a,k}}} \;, \nonumber \\
+\text{with } \varPhi_{a,k,,n_{a,k}} &=
+\begin{cases}
+\nu_{a,k,n_{a,k}}=2\alpha_{a,k} \;, \\
+m_{a,k,n_{a,k}} = x^\top U_{a,k} \;, \\
+r_{a,k,n_{a,k}}^2 = \frac{\beta_{a,k}}{\alpha_{a,k}} (1+x^\top V_{a,k} x) \;.
+\end{cases}
+\label{eq:marginalized_predictive_emission_univariate}
+\end{align}
+The hyperparameters $\varPhi_{a,k,,n_{a,k}}=\{\nu_{a,k,n_{a,k}}, m_{a,k,n_{a,k}}, r_{a,k,n_{a,k}}\}$ above are those of the prior $\varPhi_{a,0}$, or the posterior $\varPhi_{a,k,n_{a,k}}$, depending on whether the predictive density refers to a `\textit{new}' mixand $k_{new}$ with $n_{a,k=k_{new}}=0$, or a `\textit{seen}' mixand $k$, for which $n_{a,k}\geq0$ observations have been already assigned to, respectively.
+
+Similarly, the likelihood of a set of rewards assigned to per-arm mixand $k$, $Y_{a,k}=y_{1:n}\cdot \mathds{1}[a_n=a,z_n=k]$, given their associated contexts $X_{a,k}=x_{1:n} \cdot \mathds{1}[a_n=a,z_n=k]$, follows the matrix t-distribution
+\begin{align}
+&p(Y_{a,k}|X_{a,k},X_{\backslash a,k},Y_{\backslash a,k},\varPhi_{a,k}) = \MT{Y_{a,k}|\nu_{Y_{a,k}}, M_{Y_{a,k}}, \Psi_{Y_{a,k}}, \Omega_{Y_{a,k}}} \; , \nonumber  \\
+\text{with }&\begin{cases}
+\nu_{Y_{a,k}}=2 \alpha_{a,k} \;,\\
+M_{Y_{a,k}}= X_{a,k}^\top U_{a,k} \;, \\
+\Psi_{Y_{a,k}} = I_{n_{a,k}} + X_{a,k}^\top V_{a,k} X_{n_{a,k}} \;,\
+\Omega_{Y_{a,k}} = 2 \beta_{a,k} \;.
+\end{cases}
+\label{eq:marginalized_predictive_emission_multivariate}
+\end{align}
+
+With parameter posteriors as in Eqns.~\eqref{eq:marginalized_predictive_emission_univariate} and~\eqref{eq:marginalized_predictive_emission_multivariate}, we implement a Gibbs sampler to infer the mixture assignments $z_{1:n}$, based on the assignment probabilities described in Eqn.~\eqref{eq:gibbs_mixture_assignment}, for per-arm already drawn mixture components $k_a\in\{1, \cdots, K_a\}$, and a new `\textit{unseen}' mixand $k_{a,new}$. Therefore, the proposed Gibbs sampler adjusts the nonparametric posterior's complexity (\ie number of mixands $K_a$) according to the observed per-arm rewards distribution.
+
+\subsection{Nonparametric Gaussian mixture model based Thompson sampling}
+\label{ssec:nonparametric_thompson_sampling}
+
+We leverage the nonparametric context-conditional Gaussian mixture model described above, and combine it with a posterior sampling MAB policy, \ie Thompson sampling~\citep{j-Russo2018}. The proposed Thompson sampling technique for contextual bandits with nonparametric Gaussian mixture reward models is presented in Algorithm~\ref{alg:nonparametric_ts}.
+
+%Nonparametric TS
+\vspace*{-2ex}
+\begin{algorithm}
+	\caption{Nonparametric Gaussian mixture model based Thompson sampling}
+	\label{alg:nonparametric_ts}
+	\begin{algorithmic}[1]
+		\STATE {\bfseries Input:} Number of arms $|\A|$
+		\STATE {\bfseries Input:} Per-arm hyperparameters $d_a$, $\gamma_a$, $\varPhi_{a,0}$
+		\STATE {\bfseries Input:} Gibbs convergence criteria $\epsilon$, $Gibbs_{max}$ 
+		\STATE $\HH_1=\emptyset$
+		\FOR{$t=1, \cdots, T$}
+		\STATE Receive context $x_{t}$
+		\FOR{$a=1, \cdots, |\A|$}
+		\STATE Draw parameters from the posterior \\ $\hspace*{2ex}\varphi_{a,k}^{(t)} \sim G_{a,k,n_{a,k}}(\varPhi_{a,k}), \forall k$, as in Eqn.~\eqref{eq:posterior_hyperparameters}
+		\STATE Compute $\mu_{t,a}(x_{t},\varphi_{a}^{(t)})$ as in Eqn.~\eqref{eq:nonparametric_expected_reward}
+		\ENDFOR
+		\STATE Play arm $a_{t}=\argmax_{a^\prime \in \A} \mu_{t,a^\prime}(x_{t},\varphi_{a^\prime}^{(t)})$
+		\STATE Observe reward $y_{t}$
+		\STATE $\HH_{1:t}=\HH_{1:t-1} \cup \left\{x_{t}, a_{t}, y_{t}\right\}$
+		\WHILE{NOT Gibbs convergence criteria}
+		\STATE Update mixture assignments $z_{1:n}$ based on Eqn.~\eqref{eq:gibbs_mixture_assignment}
+		\STATE Compute sufficient statistics $n_{a,k}$
+		\STATE Update parameter posteriors $\varPhi_{a,k,n_{a,k}}$ based on Eqn.~\eqref{eq:posterior_hyperparameters}
+		\ENDWHILE
+		\ENDFOR
+	\end{algorithmic}
+\end{algorithm}
+\vspace*{-2ex}
+
+At each interaction with the world, the proposed Thompson sampling decides which arm to play next based on a random parameter sample, drawn from the posterior nonparametric distribution updated with all the information available at time $t$.
+
+The parameters' posterior distributions for the proposed nonparametric Gaussian mixture model are presented in Section~\ref{ssec:nonparametric_posterior_update}.
+Specifically, for nonparametric models as in Eqn~\eqref{eq:nonparametric_Gaussian_mixture}, one draws per-arm and per-mixand Gaussian parameters $\varphi_{a,k}$ from the posterior distributions with updated hyperparameters $\varPhi_{a,k,n_{a,k}}$ in Eqn.~\eqref{eq:posterior_hyperparameters}, conditioned on the mixture assignments $z_{1:n}$ determined by the Gibbs sampler in Eqn.~\eqref{eq:gibbs_mixture_assignment}, with marginalized emission densities provided in Eqns.~\eqref{eq:marginalized_predictive_emission_univariate} and~\eqref{eq:marginalized_predictive_emission_multivariate}.
+
+Given the inferred sufficient statistics of the assignments (\ie the counts $n_{a,k}$ of rewards observed for arm $a$ and assigned to mixand $k$), and the drawn posterior parameter samples $w_{a,k}^{(t)}$, one computes the expected reward for each arm of the nonparametric bandit, \ie
+
+\begin{align}
+\mu_{t,a}(x_{t},\varphi_{a}^{(t)})&=\sum_{k=1}^{K_a} \frac{n_{a,k}-d_a}{n_a+\gamma_a} \left(x_{t}^\top w_{a,k}^{(t)}\right) + \frac{\gamma_a+K_ad_a}{n_a+\gamma_a} \left(x_{t}^\top w_{a,k_{new}}^{(t)} \right)\; .
+\label{eq:nonparametric_expected_reward}
+\end{align}
+
+The proposed Thompson sampling policy $\myPitilde{\Atilde_t|x_{t},\HH_{1:t-1}}$, with assumed per-arm nonparametric distribution $\ptilde(Y|a,x_t,\varphi_a)$ in Eqn~\eqref{eq:nonparametric_Gaussian_mixture}, picks the arm that maximizes the above expected reward, \ie
+\begin{align}
+\myPitilde{\Atilde_t|x_{t},\HH_{1:t-1}}&=\myPitilde{\Atilde_t|x_{t},\varphi_{a}^{(t)}} \nonumber \\
+& =\myind{\Atilde_t=\argmax_{a^\prime \in \A} \mu_{t,a}\left(x_{t},\varphi_{a}^{(t)}\right)}\;, \varphi_{a}^{(t)} \sim p(\varphi_{a}|\HH_{1:t-1}) \;,
+\end{align}
+with updated hyperparameters for $\ptilde(\varphi_{a}|\HH_{1:t-1})$ as in Eqn.~\eqref{eq:posterior_hyperparameters}.
+
+\subsubsection{Regret bound}
+\label{sssec:nonparametric_thompson_sampling_regret_bound}
+
+We leverage asymptotic posterior converge rates ---the rate at which the distance between two densities becomes small as the number of observation grows--- to asymptotically bound the regret of the proposed nonparametric Thompson sampling algorithm.
+
+A Thompson sampling-based policy operates according to the probability of each arm being optimal. This probability is equivalent to the expectation with respect to the joint posterior distribution of the expected rewards given history and context, $p(\mu_t|x_{t},\HH_{1:t-1})$, of the optimal arm indicator function, \ie
+\begin{align}
+\myPi{p}{A_t|x_{t},\HH_{1:t-1}} &= \myProb{p}{A_t=\argmax_{a^\prime \in \A} \mu_{t,a^\prime}} =\eValue{p}{\myind{A_t=\argmax_{a^\prime \in \A}\mu_{t,a^\prime}}} \;.
+\nonumber
+\end{align}
+
+Note that the indicator function $\myind{A_t=\argmax_{a^\prime \in \A}\mu_{t,a^\prime}}$ for each arm requires the posterior over all arms $a^\prime \in \A$ as input. That is, the posterior $p(\mu_t|x_{t},\HH_{1:t-1})$ is the joint posterior distribution over the expected rewards of all arms: $\mu_{t}=\{\mu_{t,a}\}, \forall a\in \A$; \ie it is a $|\A|$ dimensional multivariate distribution over all arms of the bandit.
+
+We now present our first lemma, with the proof provided in Section~\ref{asec:nonparametric_thompson_sampling_regret_bound} of the Appendix, which is key to the cumulative regret theorem that follows.
+\begin{lemma}
+	The difference in action probabilities between two Thompson sampling policies, given the same history and context up to time $t$, is bounded by the total-variation distance $\delta_{TV}(p_t,q_t)$ between the posterior distributions of their expected rewards at time $t$, $p_t=p(\mu_{t}|x_t,\HH_{1:t-1})$ and $q_t=q(\mu_{t}|x_t,\HH_{1:t-1})$, respectively,
+	\begin{equation}
+	\myPi{p_t}{A_t=a} - \myPi{q_t}{A_t=a} \leq \delta_{TV}(p_t,q_t) \; .
+	\nonumber
+	\end{equation}
+	\label{lemma:total_variation_bounds_diff_policies}
+	The \textbf{total variation distance} $\delta_{TV}(p,q)$ between distributions $p$ and $q$ on a sigma-algebra $\mathcal{F}$ of subsets of the sample space $\Omega$ is defined as
+	\begin{equation}
+	\delta_{TV}(p, q) = \sup_{B \in \mathcal{F}} \left|p(B)-q(B)\right| \; ,
+	\end{equation}
+	which is properly defined for both discrete and continuous distributions (see details in Section~\ref{asec:nonparametric_thompson_sampling_regret_bound} of the Appendix).
+\end{lemma}
+We make use of Lemma~\ref{lemma:total_variation_bounds_diff_policies} to asymptotically bound the cumulative regret of the proposed Thompson sampling with Dirichlet process priors (\ie $d_a=0, \forall a$) and Gaussian emission distributions, for bandits with true reward densities that meet certain regularity conditions. 
+
+\begin{theorem}
+	The expected cumulative regret at time $T$ of a Dirichlet process Gaussian mixture model based Thompson sampling algorithm is asymptotically bounded by
+	\begin{equation}
+	R_T	\leq \mathcal{O}\left(|\A| \log^\kappa T \sqrt{T} \right) \; \text{ as } T \rightarrow \infty \; .
+	\nonumber
+	\end{equation}
+	We use big-O notation $\mathcal{O}(\cdot)$ for the asymptotic regret bound, as it bounds from above the growth of the cumulative regret over time for large enough bandit interactions, \ie
+	\begin{align}
+	\lim_{T\rightarrow \infty} \frac{R_T}{|\A| \log^\kappa T \sqrt{T} } & \leq \mathcal{O}(1)\; .
+	\end{align}
+	We note that this bound holds both in a frequentist and Bayesian view of expected regret.
+	\label{th:regret_bound}
+\end{theorem}
+
+The proof of Theorem~\ref{th:regret_bound}, provided in Section~\ref{asec:nonparametric_thompson_sampling_regret_bound} of the Appendix, consists of bounding the regret introduced by two factors: the first, related to the use of Thompson sampling (\ie a policy that does not know the true parameters of the reward distribution, but has knowledge of the true reward model class); and the second, a term that accounts for the convergence of the posterior of a nonparametric model to that of the true data generating distribution.
+
+The logarithmic term $\log^\kappa T$ in the bound appears due to the convergence rate of the nonparametric density estimation, where the exponent $\kappa\geq 0$ depends on the tail behavior of the base measure and the priors of the Dirichlet process ---see Section \ref{asec:nonparametric_thompson_sampling_regret_bound} of the Appendix, and references therein, for details on density convergence and its impact on the exponent $\kappa\geq 0$.
+
+\subsubsection{Computational complexity}
+\label{sssec:nonparametric_thompson_sampling_computational_complexity}
+The Gibbs sampler in the proposed nonparametric Thompson sampling (lines 14-18 within Algorithm~\ref{alg:nonparametric_ts}) is run $Gibbs_{steps}$ until a stopping criteria is met: either the model likelihood of the sampled chain is stable within an $\epsilon$ likelihood margin between steps, or a maximum number of iterations $Gibbs_{max}$ is reached.
+
+As new rewards $y_{t,a_{t}}$ are acquired, updates to assignments $z_{t^\prime,a_{t}}$ are computed sequentially within the Gibbs sampler for $t^\prime=\{1,\cdots,t | a_{t^\prime}=a_{t}\}$; \ie only the posterior over the last played armed $a_{t}$ is recomputed. Since Eqn.~\eqref{eq:posterior_hyperparameters} can be sequentially computed for each per-arm observation, the computational cost of the Gibbs sampler grows with the number of available observation of the played arm. Therefore, the overall computational cost is upper-bounded by $\mathcal{O}(T \cdot Gibbs_{steps})$ per-interaction with the world, \ie per newly observed reward $y_{t,a_{t}}$.
+
+Due to the sequential acquisition of observations in the bandit setting, and the need to only update the posterior for the played arm, the Gibbs sampler is \textit{warm-started} at each bandit interaction, and good convergence can be achieved in few iterations per observed reward. 
+In practice, and because of the \textit{warm-start}, one can limit the number of Gibbs sampler iterations per-bandit interaction to upper-bound the algorithm's complexity to $O(T\cdot Gibbs_{max})$ per interaction, yet achieve satisfactory performance ---empirical evidence of this claim is provided in Section~\ref{sssec:evaluation_mixture_scenarios_baselines}.
+Due to the \textit{warm-start}, the Gibbs sampler is run from a good starting point: the per-arm parameter space that describes all but this newly observed reward $y_{t,a_{t}}$.
+
+We emphasize that we propose a Gibbs sampler that runs until convergence, but suggest to limit the number of Gibbs iterations as a practical recommendation with good empirical regret performance, yet upper-bounded $\mathcal{O}(T \cdot Gibbs_{max})$ computational complexity per MAB interaction with the environment.
