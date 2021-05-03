@@ -118,9 +118,9 @@ In many biomedical, science, and engineering problems, one must sequentially dec
 
 Reinforcement learning is an area of machine learning that studies optimizing interactions with the world while simultaneously learning how the world operates. The multi-armed bandit problem \cite{b-Sutton1998,j-Ghavamzadeh2015} is a natural abstraction for a wide variety of such real-world challenges that require learning while simultaneously maximizing rewards. The goal is to decide on a series of actions under uncertainty, where each action can depend on previous rewards, actions, and contexts, aiming at balancing exploration and exploitation.
 
-The name ``bandit'' finds its origin in the playing strategy one must devise when facing a row of slot machines (\ie which arms to play). The setting is more formally referred to as the theory of sequential decision processes. Its foundations in the field of statistics began with the work by \citet{j-Thompson1933,j-Thompson1935} and continued with the contributions by \citet{j-Robbins1952}. Interest in sequential decision making has recently intensified in both academic and industrial communities. The publication of separate works by \citet{ic-Chapelle2011}, and \citet{j-Scott2015} have shown its impact in the online content management industry. This renaissance period of the multi-armed bandit problem has both a practical aspect \cite{j-Li2010} and a theoretical one as well \cite{j-Scott2010,j-Agrawal2011,ip-Maillard2011}.
+The name ``bandit'' finds its origin in the playing strategy one must devise when facing a row of slot machines (\ie which arms to play). The setting is more formally referred to as the theory of sequential decision processes. Its foundations in the field of statistics began with the work by \citet{j-Thompson1933,j-Thompson1935} and continued with the contributions by \citet{j-Robbins1952}. Interest in sequential decision making has recently intensified in both academic and industrial communities. The publication of separate works by \citet{ic-Chapelle2011}, and \citet{j-Scott2015} have shown its impact in the online content management industry. This renaissance period of the multi-armed bandit problem has both a practical aspect \cite{ip-Li2010} and a theoretical one as well \cite{j-Scott2010,ip-Agrawal2012,ip-Maillard2011}.
 
-Interestingly, most of these works have orbited around one of the oldest heuristics that address the exploration-exploitation tradeoff, \ie Thompson sampling. It has been empirically proven to perform satisfactorily, and to enjoy provable optimality properties, both for problems with and without context \cite{j-Agrawal2012,j-Agrawal2012a,ic-Korda2013,j-Russo2014,j-Russo2016}.
+Interestingly, most of these works have orbited around one of the oldest heuristics that address the exploration-exploitation tradeoff, \ie Thompson sampling. It has been empirically proven to perform satisfactorily, and to enjoy provable optimality properties, both for problems with and without context \cite{ip-Agrawal2012,ip-Agrawal2013,ip-Agrawal2013a,ic-Korda2013,j-Russo2014,j-Russo2016}.
 
 In this work, we are interested in extending and improving Thompson sampling. In its standard form, it is applicable to restricted models of the world, as one needs to sample from the corresponding parameter posteriors and compute their expected rewards: see \cite{j-Scott2010} for details. The issue is that, for many problems of practical interest, one has partial (or no) knowledge about the ground truth, and the available models might be misspecified. 
 
@@ -130,12 +130,13 @@ We model the convoluted relationship between the observed variables (rewards), a
 
 To that end, we leverage the advances developed for statistical inference in the last decades, and propose a variational approximation to the underlying true distribution of the environment with which one interacts. Variational inference is a principled framework, with roots in statistical physics and widely applied in the machine learning community \cite{b-Bishop2006}.
 
-Approximation of Bayesian models by variational inference has already attracted interest within the reinforcement learning community, both to learn a probability distribution on the weights of a neural network \cite{ip-Blundell2015}, and for its application to Q-learning \cite{j-Lipton2016}. Thompson sampling has also been applied in the context of deep Q-networks, \eg \cite{j-Lipton2016} and \cite{ic-Osband2016}. Nevertheless, our focus here is (a) not on Q-learning but on bandit problems, and (b), the variational inference is for a hierarchical Bayesian mixture model approximation to the true reward distribution. We show that variational inference allows for Thompson sampling to be applicable for complex reward models.
+Approximation of Bayesian models by variational inference has already attracted interest within the reinforcement learning community, \eg to learn a probability distribution on the weights of a neural network \cite{ip-Blundell2015}. Thompson sampling has also been applied in the context of deep Q-networks, \eg \cite{ip-Lipton2018} and \cite{ic-Osband2016}. Nevertheless, our focus here is (a) not on Q-learning but on bandit problems, and (b), the variational inference is for a hierarchical Bayesian mixture model approximation to the true reward distribution. We show that variational inference allows for Thompson sampling to be applicable for complex reward models.
 
 Our contribution is unique to the contextual multi-armed bandit setting in that (a) we approximate unknown bandit reward functions with Gaussian mixture models, and (b) we provide variational mean-field parameter updates for the distribution that minimizes its divergence (in the Kullback-Leibler sense) to the mixture model reward approximation.
 
 The proposed method autonomously learns, in the contextual bandit setting, the variational parameters of the mixture model that best approximates the true underlying reward distribution. It attains reduced cumulative regrets when operating under complex reward models, and is valuable when restrictive modeling assumptions are undesirable. To the best of our knowledge, no other work uses variational inference to address the contextual multi-armed bandit setting. 
 
+\clearpage
 We formally introduce the contextual multi-armed bandit problem in Section \ref{sec:problem_formulation}, before providing a description of our proposed variational Thompson sampling method in Section \ref{sec:proposed_method}. We evaluate its performance in Section \ref{sec:evaluation}, and we conclude with final remarks in Section \ref{sec:conclusion}.
 
 \section{Problem formulation}
@@ -151,7 +152,7 @@ a^*(x,\theta)=\argmax_{a}\mu_{a}(x,\theta) \; .
 \end{equation}
 The challenge in the contextual multi-armed bandit problem is raised when there is a lack of knowledge about the model. The issue amounts to the need to learn about the key properties of the environment (\ie the reward distribution), as one interacts with the world (\ie takes actions sequentially).
 
-Amongst the many alternatives to address this class of problems, the randomized probability matching is particularly appealing. In its simplest form, known as Thompson sampling, it has been shown to perform empirically well \cite{ic-Chapelle2011, j-Scott2015} and has sound theoretical bounds, for both contextual and context-free problems \cite{j-Agrawal2012,j-Agrawal2012a}. It plays each arm in proportion to its probability of being optimal, \ie
+Amongst the many alternatives to address this class of problems, the randomized probability matching is particularly appealing. In its simplest form, known as Thompson sampling, it has been shown to perform empirically well \cite{ic-Chapelle2011, j-Scott2015} and has sound theoretical bounds, for both contextual and context-free problems \cite{ip-Agrawal2013a,ip-Agrawal2013,ip-Agrawal2012}. It plays each arm in proportion to its probability of being optimal, \ie
 \begin{equation}
 a_{t+1} \sim \mathrm{Pr}\left[a=a_{t+1}^*|a_{1:t}, x_{1:t+1}, y_{1:t}, \theta \right] \;.
 \end{equation} 
@@ -336,10 +337,10 @@ We describe the proposed variational Thompson sampling technique in Algorithm \r
 		\STATE Receive context $x_{t+1}$
 		\FOR{$a=1, \cdots, A$}
 			\FOR{$k=1, \cdots, K_a$}
-				\STATE Draw new parameters $\theta_{a,k,t+1} \deq \left\{z_{a,k,t+1},\pi_{a,k},w_{a,k},\sigma_{a,k} \right\}$
-				$$\qquad \qquad \theta_{a,k,t+1} \sim q\left(z_{a,k,t+1},\pi_{a,k},w_{a,k},\sigma_{a,k} \left| \widetilde{\gamma}_{a,k}, \widetilde{\alpha}_{a,k}, \widetilde{\beta}_{a,k}, \widetilde{u}_{a,k}, \widetilde{V}_{a,k} \right.\right)$$
+				\STATE Draw new parameters $\theta_{a,k,t} \deq \left\{z_{a,k,t},\pi_{a,k,t},w_{a,k,t},\sigma_{a,k,t} \right\}$
+				$$\qquad \qquad \theta_{a,k,t} \sim q\left(z_{a,k},\pi_{a,k},w_{a,k},\sigma_{a,k} \left| \widetilde{\gamma}_{a,k}, \widetilde{\alpha}_{a,k}, \widetilde{\beta}_{a,k}, \widetilde{u}_{a,k}, \widetilde{V}_{a,k} \right.\right)$$
 			\ENDFOR
-			\STATE Compute $\mu_{a,t+1}=\mu_{a}(x_{t+1},\theta_{a,t+1})$
+			\STATE Compute $\mu_{a,t+1}=\mu_{a}(x_{t+1},\theta_{a,t})$
 		\ENDFOR
 		\STATE Play arm $a_{t+1}=\argmax_{a}\mu_{a,t+1}$
 		\STATE Observe reward $y_{t+1}$
@@ -354,19 +355,21 @@ We describe the proposed variational Thompson sampling technique in Algorithm \r
 	\label{alg:vts}
 \end{algorithm}
 
-An instrumental step in the proposed algorithm is to compute the expected reward for each arm, \ie $\mu_{a,t+1}$. Since we are dealing with mixture models, the following approaches can be considered:
+An instrumental step in the proposed algorithm is to compute the expected reward for each arm, \ie $\mu_{a,t+1}$, for which we need both the per-arm and per-mixture parameters $\{w_{a,k}, \sigma^{2}_{a,k}\}$ and the mixture assignments $\pi_{a,k}$.
+To compute the expected reward for each arm, we propose to draw per-arm and per-mixture posterior parameters from their updated variational posteriors, \ie $(w_{a,k,t}, \sigma^2_{a,k,t}) \sim q\left(w_{a,k}, \sigma^2_{a,k}|\widetilde{\alpha}_{a,k}, \widetilde{\beta}_{a,k}, \widetilde{u}_{a,k}, \widetilde{V}_{a,k}\right)$,
+and consider the following mixture expectation alternatives:
 \begin{enumerate}
 	\item Expectation with mixture assignment sampling
 	\begin{equation}
-	\mu_{a,t+1}=x_{t}^\top \widetilde{u}_{a,z_{a,k,t}}, \; \; \;  z_{a,k,t} \sim \Cat{\frac{\widetilde{\gamma}_{a,k}}{\sum_{k=1}^{K}\widetilde{\gamma}_{a,k}} } \;.
+	\mu_{a,t+1}=x_{t}^\top w_{a,z_{a,k,t},t}, \; \; \;  z_{a,k,t} \sim \Cat{\frac{\widetilde{\gamma}_{a,k}}{\sum_{k=1}^{K}\widetilde{\gamma}_{a,k}} } \;.
 	\end{equation}
 	\item Expectation with mixture proportion sampling
 	\begin{equation}
-	\mu_{a,t+1}=\sum_{k=1}^K \pi_{a,k,t} x_{t}^\top \widetilde{u}_{a,k}, \; \; \; \pi_{a,k,t} \sim \Dir{\widetilde{\gamma}_{a,k} } \;.
+	\mu_{a,t+1}=\sum_{k=1}^K \pi_{a,k,t} x_{t}^\top w_{a,k,t}, \; \; \; \pi_{a,k,t} \sim \Dir{\widetilde{\gamma}_{a,k} } \;.
 	\end{equation}
 	\item Expectation with mixture proportions
 	\begin{equation}
-	\mu_{a,t+1}=\sum_{k=1}^K \pi_{a,k,t} x_{t}^\top \widetilde{u}_{a,k}, \; \; \; \pi_{a,k,t} = \frac{\widetilde{\gamma}_{a,k}}{\sum_{k=1}^{K}\widetilde{\gamma}_{a,k}} \;.
+	\mu_{a,t+1}=\sum_{k=1}^K \pi_{a,k,t} x_{t}^\top w_{a,k,t}, \; \; \; \pi_{a,k,t} = \frac{\widetilde{\gamma}_{a,k}}{\sum_{k=1}^{K}\widetilde{\gamma}_{a,k}} \;.
 	\end{equation}
 \end{enumerate}
 
@@ -405,7 +408,7 @@ Since we have not noticed significant cumulative regret differences between the 
 
 Fig. \ref{fig:cumregret_comparison} shows the cumulative regret of the proposed variational Thompson sampling approach in both scenarios, when different assumptions for the variational approximating distribution are made (\ie assumed number of components $K$).
 
-Note that ``\textit{VTS with }$K=1$'' is equivalent to a vanilla Thompson sampling approach with a linear contextual Gaussian model assumption. Since $r_{a,k=1,t}=1$ for all $a$ and $t$, the variational update equations match the corresponding Bayesian posterior updates for Thompson sampling. We are thus effectively comparing the performance of the proposed method to the Thompson sampling benchmark, as in \cite{j-Agrawal2012}.
+Note that ``\textit{VTS with }$K=1$'' is equivalent to a vanilla Thompson sampling approach with a linear contextual Gaussian model assumption. Since $r_{a,k=1,t}=1$ for all $a$ and $t$, the variational update equations match the corresponding Bayesian posterior updates for Thompson sampling. We are thus effectively comparing the performance of the proposed method to the Thompson sampling benchmark, as in \cite{ip-Agrawal2013a}.
 
 % Cumulative regret
 \begin{figure}[!h]
@@ -497,6 +500,8 @@ This research was supported in part by NSF grant SCH-1344668. We thank Shipra Ag
 
 % Generate bibliography from the specified bibliography file
 \bibliography{../literature}
+% For arxiv submission, need to paste the .bbl content here
+%\input{vts.bbl}
 % Select a .bst file for the style
 \bibliographystyle{abbrvnat}
 
