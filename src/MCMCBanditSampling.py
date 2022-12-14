@@ -67,7 +67,7 @@ class MCMCBanditSampling(BanditSampling, MCMCPosterior):
         else:
             raise ValueError('Arm predictive density computation type={} not implemented yet'.format(self.arm_predictive_policy['MC_type']))
        
-        ### Sample reward's parameters, given updated Variational parameters
+        ### Sample reward's parameters, given updated parameters
         # Contextual Linear Gaussian mixture bandits with NIG prior
         if self.reward_function['type'] == 'linear_gaussian_mixture' and self.reward_prior['dist'] == 'NIG':
             # For each arm

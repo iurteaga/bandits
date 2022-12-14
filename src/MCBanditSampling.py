@@ -6,6 +6,8 @@ import pdb
 # Imports: other modules
 from BanditSampling import * 
 from MonteCarloPosterior import *
+# My auxiliary functions
+from my_functions import *
 
 ######## Class definition ########
 class MCBanditSampling(BanditSampling, MonteCarloPosterior):
@@ -89,69 +91,66 @@ class MCBanditSampling(BanditSampling, MonteCarloPosterior):
             if self.reward_function['dynamics']=='linear_mixing_known':
                 # Draw from transition density: Gaussian with known parameters
                 # Propagated mean (resampled)
-                theta_loc=np.einsum('adb,amb->amd', self.reward_function['dynamics_A'], self.reward_posterior['theta'][np.arange(self.A)[:,None]*np.ones((1,self.reward_prior['M']),dtype=int),m_a])
+                theta_loc=np.einsum('a...db,am...b->am...d', self.reward_function['dynamics_A'], self.reward_posterior['theta'])
                 # Draw from Gaussian
-                self.reward_posterior['theta']=theta_loc + np.einsum('adb,amb->amd', np.linalg.cholesky(self.reward_function['dynamics_C']), stats.norm.rvs(size=self.reward_posterior['theta'].shape))
+                self.reward_posterior['theta']=theta_loc[np.arange(self.A)[:,None]*np.ones((1,self.reward_prior['M']),dtype=int),m_a]+ np.einsum('a...db,am...b->am...d', my_cholesky(self.reward_function['dynamics_C']), stats.norm.rvs(size=self.reward_posterior['theta'].shape))
             
             # Linear mixing dynamics, with unknown parameters
             elif self.reward_function['dynamics']=='linear_mixing_unknown':
                 # Add latest particles to whole stream
-                self.allTheta[:,:,:,t]=self.reward_posterior['theta']
+                self.allTheta[...,t]=self.reward_posterior['theta']
                 # Degrees of freedom for transition density
-                nu=(self.reward_prior['nu_0']+t-self.reward_posterior['theta'].shape[2]+1)
+                nu=(self.reward_prior['nu_0']+t-self.reward_posterior['theta'].shape[-1]+1)
                 
                 # Only after observing enough data
-                if t>=2*self.reward_posterior['theta'].shape[2] and nu>0:
+                if t>=2*self.reward_posterior['theta'].shape[-1] and nu>0:
                     # We compute all sufficient statistics after resampling, to avoid computation of negligible (small weighted) streams
                     # Keep track of whole stream after resampling
-                    self.allTheta[:,:,:,:t+1]=self.allTheta[np.arange(self.A)[:,None]*np.ones((1,self.reward_prior['M']),dtype=int),m_a,:,:t+1]
+                    self.allTheta[...,:t+1]=self.allTheta[np.arange(self.A)[:,None]*np.ones((1,self.reward_prior['M']),dtype=int),m_a,...,:t+1]
       
                     # Data products
-                    ZZtop=np.einsum('amdt,ambt->amdb', self.allTheta[:,:,:,0:t-1], self.allTheta[:,:,:,0:t-1])
-                    XZtop=np.einsum('amdt,ambt->amdb', self.allTheta[:,:,:,1:t], self.allTheta[:,:,:,0:t-1])
+                    ZZtop=np.einsum('am...dt,am...bt->am...db', self.allTheta[...,0:t-1], self.allTheta[...,0:t-1])
+                    XZtop=np.einsum('am...dt,am...bt->am...db', self.allTheta[...,1:t], self.allTheta[...,0:t-1])
                     # Updated Lambda
-                    Lambda_N=ZZtop+self.reward_prior['Lambda_0'][:,None,:,:]
+                    Lambda_N=ZZtop+self.reward_prior['Lambda_0'][:,None,...]
                     # Double check invertibility
-                    Lambda_N[np.any(np.isinf(Lambda_N), axis=(2,3)) | np.any(np.isnan(Lambda_N), axis=(2,3))]=self.reward_prior['sampling_sigma']*np.eye(self.reward_posterior['theta'].shape[2])
-                    Lambda_N[np.linalg.det(Lambda_N)==0]=self.reward_prior['sampling_sigma']*np.eye(self.reward_posterior['theta'].shape[2])
-
+                    Lambda_N[np.any(np.isinf(Lambda_N), axis=(-2,-1)) | np.any(np.isnan(Lambda_N), axis=(-2,-1))]=self.reward_prior['sampling_sigma']*np.eye(self.reward_posterior['theta'].shape[-1])
+                    Lambda_N[np.linalg.det(Lambda_N)==0]=self.reward_prior['sampling_sigma']*np.eye(self.reward_posterior['theta'].shape[-1])
+                    
                     # Estimated A
-                    A_hat=np.einsum('amdb,ambc->amdc', XZtop + self.reward_prior['A_0Lambda_0'][:,None,:,:], np.linalg.inv(Lambda_N))
+                    A_hat=np.einsum('am...db,am...bc->am...dc', XZtop + self.reward_prior['A_0Lambda_0'][:,None,...], np.linalg.inv(Lambda_N))
                     # Propagated mean (already resampled)
-                    theta_loc=np.einsum('amdb,amb->amd', A_hat, self.allTheta[:,:,:,t])
+                    theta_loc=np.einsum('am...db,am...b->am...d', A_hat, self.allTheta[...,t])
                     
                     # Auxiliary data for correlation matrix
-                    diff_1=self.allTheta[:,:,:,1:t]-np.einsum('amdb,ambt->amdt', A_hat, self.allTheta[:,:,:,0:t-1])
-                    tmp_1=np.einsum('amdt,ambt->amdb', diff_1, diff_1)
-                    diff_2=A_hat-self.reward_prior['A_0'][:,None,:,:]
-                    tmp_2=np.einsum('amdb,abc,amec->amde', diff_2, self.reward_prior['Lambda_0'], diff_2)
-                    UUtop=Lambda_N+np.einsum('amd,amb->amdb',self.allTheta[:,:,:,t],self.allTheta[:,:,:,t])
+                    diff_1=self.allTheta[...,1:t]-np.einsum('am...db,am...bt->am...dt', A_hat, self.allTheta[...,0:t-1])
+                    tmp_1=np.einsum('am...dt,am...bt->am...db', diff_1, diff_1)
+                    diff_2=A_hat-self.reward_prior['A_0'][:,None,...]
+                    tmp_2=np.einsum('am...db,a...bc,am...ec->am...de', diff_2, self.reward_prior['Lambda_0'], diff_2)
+                    UUtop=Lambda_N+np.einsum('am...d,am...b->am...db',self.allTheta[...,t],self.allTheta[...,t])
                     # Double check invertibility
-                    UUtop[np.any(np.isinf(UUtop), axis=(2,3)) | np.any(np.isnan(UUtop), axis=(2,3))]=self.reward_prior['sampling_sigma']*np.eye(self.reward_posterior['theta'].shape[2])
-                    UUtop[np.linalg.det(UUtop)==0]=self.reward_prior['sampling_sigma']*np.eye(self.reward_posterior['theta'].shape[2])
+                    UUtop[np.any(np.isinf(UUtop), axis=(-2,-1)) | np.any(np.isnan(UUtop), axis=(-2,-1))]=self.reward_prior['sampling_sigma']*np.eye(self.reward_posterior['theta'].shape[-1])
+                    UUtop[np.linalg.det(UUtop)==0]=self.reward_prior['sampling_sigma']*np.eye(self.reward_posterior['theta'].shape[-1])
                     
                     # Estimated covariance
-                    C_N=self.reward_prior['C_0'][:,None,:,:]+tmp_1+tmp_2
-                    den=1-np.einsum('amd,amdb,amb->am', self.allTheta[:,:,:,t], np.linalg.inv(UUtop), self.allTheta[:,:,:,t])
+                    C_N=self.reward_prior['C_0'][:,None,...]+tmp_1+tmp_2
+                    den=1-np.einsum('am...d,am...db,am...b->am...', self.allTheta[...,t], np.linalg.inv(UUtop), self.allTheta[...,t])
                     # Correlation matrix
-                    t_cov=C_N/(nu*den)[:,:,None,None]
+                    t_cov=C_N/(nu*den)[...,None,None]
                     # Double check valid covariance matrix (TODO: better/more elegant checking scheme)
-                    t_cov[np.any(np.isinf(t_cov), axis=(2,3)) | np.any(np.isnan(t_cov), axis=(2,3))]=self.reward_prior['sampling_sigma']*np.eye(self.reward_posterior['theta'].shape[2])
+                    t_cov[np.any(np.isinf(t_cov), axis=(-2,-1)) | np.any(np.isnan(t_cov), axis=(-2,-1))]=self.reward_prior['sampling_sigma']*np.eye(self.reward_posterior['theta'].shape[-1])
                     # Guarantee sym
-                    triu=np.zeros((self.reward_posterior['theta'].shape[2],self.reward_posterior['theta'].shape[2]),dtype=bool)
+                    triu=np.zeros((self.reward_posterior['theta'].shape[-1],self.reward_posterior['theta'].shape[-1]),dtype=bool)
                     triu[np.triu_indices(triu.shape[0])]=True
-                    t_cov[np.tile(triu.T, (self.A,self.reward_prior['M'],1,1))]=t_cov[np.tile(triu, (self.A, self.reward_prior['M'],1,1))]
-                    # positive-definite
-                    t_cov[np.any(np.linalg.eigvals(t_cov)<=0., axis=2)]=self.reward_prior['sampling_sigma']*np.eye(self.reward_posterior['theta'].shape[2])
-                    #t_cov[np.any(t_cov != t_cov.transpose(0,1,3,2), axis=(2,3))]=self.reward_prior['sampling_sigma']*np.eye(self.reward_posterior['theta'].shape[2])
+                    t_cov[np.tile(triu.T, self.reward_posterior['theta'].shape[:-1]+(1,1))]=t_cov[np.tile(triu, self.reward_posterior['theta'].shape[:-1]+(1,1))]
                     # Draw from transition density: multivariate t-distribution (with resampled sufficient statistics) via multivariate normal and chi-square
-                    self.reward_posterior['theta'] = theta_loc + np.einsum('amdb,amb->amd', np.linalg.cholesky(t_cov), stats.norm.rvs(size=self.reward_posterior['theta'].shape))/np.sqrt(stats.chi2.rvs(nu, size=self.reward_posterior['theta'].shape)/nu)
+                    self.reward_posterior['theta'] = theta_loc + np.einsum('am...db,am...b->am...d', my_cholesky(t_cov,precision=self.reward_prior['sampling_sigma'], fix_type='strict_replace'), stats.norm.rvs(size=self.reward_posterior['theta'].shape))/np.sqrt(stats.chi2.rvs(nu, size=self.reward_posterior['theta'].shape)/nu)
                 else:
                     # Propagate with priors over dynamics
                     # Propagated mean (resampled)
-                    theta_loc=np.einsum('adb,amb->amd', self.reward_prior['A_0'], self.reward_posterior['theta'][np.arange(self.A)[:,None]*np.ones((1,self.reward_prior['M']),dtype=int),m_a])
+                    theta_loc=np.einsum('a...db,am...b->am...d', self.reward_prior['A_0'], self.reward_posterior['theta'][np.arange(self.A)[:,None]*np.ones((1,self.reward_prior['M']),dtype=int),m_a])
                     # Draw from Gaussian
-                    self.reward_posterior['theta']=theta_loc + np.einsum('adb,amb->amd', np.linalg.cholesky(self.reward_prior['C_0']), stats.norm.rvs(size=self.reward_posterior['theta'].shape))
+                    self.reward_posterior['theta']=theta_loc + np.einsum('a...db,am...b->am...d', my_cholesky(self.reward_prior['C_0']), stats.norm.rvs(size=self.reward_posterior['theta'].shape))
             else:
                 raise ValueError('Invalid reward function dynamics={}'.format(self.reward_function['dynamics']))
        
@@ -206,7 +205,22 @@ class MCBanditSampling(BanditSampling, MonteCarloPosterior):
             elif self.arm_predictive_policy['MC_type'] == 'MC_rewards':
                 # Draw rewards given sampled logistic function of context and parameters
                 rewards_samples=stats.bernoulli.rvs(np.exp(xTheta)/(1+np.exp(xTheta)))
+                
+        # Softmax bandits
+        elif self.reward_function['type'] == 'softmax':
+            # Draw theta parameters
+            reward_params_samples=self.reward_posterior['theta'][np.arange(self.A)[:,None]*np.ones((1,self.arm_predictive_policy['M']),dtype=int), m_a]
+            # Compute linear combination of context and parameters per category
+            xTheta=np.einsum('d,amcd->amc', self.context[:,t], reward_params_samples)
+            # Compute categorical probabilities
+            w=np.exp(xTheta)/(np.exp(xTheta).sum(axis=2,keepdims=True))
             
+            if self.arm_predictive_policy['MC_type'] == 'MC_expectedRewards' or self.arm_predictive_policy['MC_type'] == 'MC_arms':
+                # Expected rewards are given by the logistic function of context and parameters
+                rewards_expected_samples=np.sum(np.arange(self.reward_function['C'])[None,None,:]*w, axis=2)
+            elif self.arm_predictive_policy['MC_type'] == 'MC_rewards':
+                # Draw rewards given sampled logistic function of context and parameters
+                rewards_samples=(np.random.rand(self.A,self.arm_predictive_policy['M'],1)>w.cumsum(axis=2)).sum(axis=2)
         else:
             raise ValueError('reward_function={} with reward_prior={} not implemented yet'.format(self.reward_function['type'], self.reward_prior['dist'].name))
         

@@ -4,6 +4,7 @@
 import abc
 import numpy as np
 import scipy.stats as stats
+import pdb
 
 ######## Helper functions ########
 def online_update_mean_var(r, new_instance, this_mean, this_m2):
@@ -33,8 +34,8 @@ class Bandit(abc.ABC,object):
         rewards_expected: the expected rewards computed for each arm of the bandit (per realization) as A by t_max array
         actions_R: dictionary with the actions that the bandit takes (for R realizations)
         rewards_R: dictionary with the rewards obtained by the bandit (for R realizations)
-        regrets_R: dictioinary with the regret of the bandit (for R realizations)
-        cumregrets_R: dictioinary with the cumulative regret of the bandit (for R realizations)
+        regrets_R: dictionary with the regret of the bandit (for R realizations)
+        cumregrets_R: dictionary with the cumulative regret of the bandit (for R realizations)
         rewards_expected_R: the expected rewards of the bandit (for R realizations)
     """
     
@@ -97,6 +98,11 @@ class Bandit(abc.ABC,object):
                 if self.reward_function['mushroom'][t]==1:
                     self.rewards[a,t]=-15+np.random.rand()
 
+        # Previously generated bandit rewards
+        elif 'preloaded_bandit_rewards' in self.reward_function:
+            # Just load reward for given arm and time
+            self.rewards[a,t]=self.reward_function['preloaded_bandit_rewards'][a,t]
+            
         #### SIMULATED DATA SETS
         elif self.reward_function['type'] == 'bernoulli':
             # For Bernoulli distribution: expected value is \theta
@@ -108,7 +114,7 @@ class Bandit(abc.ABC,object):
                 self.rewards[a,t]=self.reward_function['dist'].rvs(loc=np.einsum('dt,td->t', np.reshape(self.context[:,t], (self.d_context, t.size)), np.reshape(self.reward_function['theta'][a,:,t], (t.size, self.d_context))), scale=self.reward_function['sigma'][a])
             else:
                 # For Linear Gaussian contextual bandit, expected value is dot product of context and parameters \theta
-                self.rewards[a,t]=self.reward_function['dist'].rvs(loc=np.einsum('dt,td->t', np.reshape(self.context[:,t], (self.d_context, t.size)), np.reshape(self.reward_function['theta'][a], (t.size, self.d_context))), scale=self.reward_function['sigma'][a])
+                self.rewards[a,t]=self.reward_function['dist'].rvs(loc=np.einsum('dt,d->t', np.reshape(self.context[:,t], (self.d_context, t.size)), self.reward_function['theta'][a]), scale=self.reward_function['sigma'][a])
         
         elif self.reward_function['type'] == 'linear_gaussian_mixture':
             # First, pick mixture
@@ -129,8 +135,20 @@ class Bandit(abc.ABC,object):
                 xTheta=np.einsum('dt,td->t', np.reshape(self.context[:,t], (self.d_context, t.size)), np.reshape(self.reward_function['theta'][a,:,t], (t.size, self.d_context)))
             else:
                 # For logistic function, we have Bernoulli distribution with expected value x^\top\theta
-                xTheta=np.einsum('dt,td->t', np.reshape(self.context[:,t], (self.d_context, t.size)), np.reshape(self.reward_function['theta'][a], (t.size, self.d_context)))
+                xTheta=np.einsum('dt,d->t', np.reshape(self.context[:,t], (self.d_context, t.size)), self.reward_function['theta'][a])
+            # Compute rewards
             self.rewards[a,t]=stats.bernoulli.rvs(np.exp(xTheta)/(1+np.exp(xTheta)))
+            
+        elif self.reward_function['type'] == 'softmax':
+            # For softmax function, probability of each category c is propto x^\top\theta_c
+            if 'dynamics' in self.reward_function:
+                xTheta=np.einsum('dt,tcd->tc', np.reshape(self.context[:,t], (self.d_context, t.size)), np.reshape(self.reward_function['theta'][a,...,t], (t.size, self.reward_function['C'], self.d_context)))
+            else:
+                xTheta=np.einsum('dt,cd->tc', np.reshape(self.context[:,t], (self.d_context, t.size)), self.reward_function['theta'][a])
+            # Compute rewards, via categorical
+            w=np.exp(xTheta)/(np.exp(xTheta).sum(axis=1,keepdims=True))
+            self.rewards[a,t]=(np.random.rand(t.size,1)>w.cumsum(axis=1)).sum(axis=1)
+
         # TODO: Add other reward functions
         else:
             raise ValueError('Reward function={} not implemented yet'.format(self.reward_function))
@@ -159,6 +177,11 @@ class Bandit(abc.ABC,object):
             # If eating mushroom (arm 0): zero reward for not eating poisounous (1), reward of 5 if eating edible (0)
             self.true_expected_rewards[1,self.reward_function['mushroom']==0]=5
 
+        # Previously generated bandit rewards
+        elif 'preloaded_bandit_rewards' in self.reward_function:
+            # Just compute per-arm empirical mean over time
+            self.true_expected_rewards=self.reward_function['preloaded_bandit_rewards'].mean(axis=1, keepdims=True)*np.ones(self.reward_function['preloaded_bandit_rewards'].shape[1])
+            
         #### SIMULATED DATA SETS
         elif self.reward_function['type'] == 'bernoulli':
             # For Bernoulli distribution: expected value is \theta
@@ -181,6 +204,15 @@ class Bandit(abc.ABC,object):
                 # For the logistic function with 0/1 rewards the expected value
                 xTheta=np.einsum('dt,ad->at', self.context, self.reward_function['theta'])
             self.true_expected_rewards=np.exp(xTheta)/(1+np.exp(xTheta))
+        elif self.reward_function['type'] == 'softmax':
+            # For softmax function, probability of each category c is propto x^\top\theta_c
+            if 'dynamics' in self.reward_function:
+                xTheta=np.einsum('dt,acdt->atc', self.context, self.reward_function['theta'])
+            else:
+                xTheta=np.einsum('dt,acd->atc', self.context, self.reward_function['theta'])
+            # Compute expected rewards, via categorical probabilities and [0,1,...C] values
+            w=np.exp(xTheta)/(np.exp(xTheta).sum(axis=2,keepdims=True))
+            self.true_expected_rewards=np.sum(np.arange(self.reward_function['C'])[None,None,:]*w, axis=2)
         # TODO: Add other reward functions
         else:
             raise ValueError('Reward function={} not implemented yet'.format(self.reward_function))

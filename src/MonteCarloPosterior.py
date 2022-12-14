@@ -4,6 +4,8 @@
 import numpy as np
 import scipy.stats as stats
 import pdb
+# My auxiliary functions
+from my_functions import *
 
 ######## Class definition ########
 class MonteCarloPosterior(object):
@@ -49,15 +51,19 @@ class MonteCarloPosterior(object):
                 self.reward_posterior['sigma'][:,:,0]=stats.invgamma.rvs(self.reward_prior['alpha'], scale=self.reward_prior['beta'], size=(self.A,self.reward_prior['M']))
 
                 # Then multivariate Gaussian parameters
-                self.reward_posterior['theta']=self.reward_prior['theta'][:,None,:]+np.sqrt(self.reward_posterior['sigma'])*np.einsum('aid,md->ami',np.linalg.cholesky(self.reward_prior['Sigma']), stats.norm.rvs(size=(self.reward_prior['M'],self.reward_prior['theta'].shape[1])))
+                self.reward_posterior['theta']=self.reward_prior['theta'][:,None]+np.sqrt(self.reward_posterior['sigma'])*np.einsum('aid,amd->ami',my_cholesky(self.reward_prior['Sigma']), stats.norm.rvs(size=(self.A,self.reward_prior['M'],self.reward_prior['theta'].shape[1])))
             else:
                 # Multivariate Gaussian parameters, with known sigma
-                self.reward_posterior['theta']=self.reward_prior['theta'][:,None,:]+np.einsum('aid,md->ami',np.linalg.cholesky(self.reward_prior['Sigma']), stats.norm.rvs(size=(self.reward_prior['M'],self.reward_prior['theta'].shape[1])))
+                self.reward_posterior['theta']=self.reward_prior['theta'][:,None]+np.einsum('aid,amd->ami',my_cholesky(self.reward_prior['Sigma']), stats.norm.rvs(size=(self.A,self.reward_prior['M'],self.reward_prior['theta'].shape[1])))
                 
         # Logistic reward
         elif self.reward_function['type'] == 'logistic' and self.reward_prior['dist'] == 'Gaussian':
             # Multivariate Gaussian parameter prior
-            self.reward_posterior['theta']=self.reward_prior['theta'][:,None,:]+np.einsum('aid,md->ami',np.linalg.cholesky(self.reward_prior['Sigma']), stats.norm.rvs(size=(self.reward_prior['M'],self.reward_prior['theta'].shape[1])))
+            self.reward_posterior['theta']=self.reward_prior['theta'][:,None]+np.einsum('aid,amd->ami',my_cholesky(self.reward_prior['Sigma']), stats.norm.rvs(size=(self.A,self.reward_prior['M'],self.reward_prior['theta'].shape[1])))
+        # Softmax reward
+        elif self.reward_function['type'] == 'softmax' and self.reward_prior['dist'] == 'Gaussian':
+            # Multivariate Gaussian parameter prior
+            self.reward_posterior['theta']=self.reward_prior['theta'][:,None]+np.einsum('acdi,ambi->amcd',my_cholesky(self.reward_prior['Sigma']), stats.norm.rvs(size=(self.A,self.reward_prior['M'],self.reward_prior['theta'].shape[1],self.reward_prior['theta'].shape[2])))
         else:
             raise ValueError('Invalid reward_function={} with reward_prior={} combination'.format(self.reward_function['type'], self.reward_prior['dist'].name))
 
@@ -67,12 +73,12 @@ class MonteCarloPosterior(object):
         ## For unknown dynamics
         if 'dynamics' in self.reward_function and self.reward_function['dynamics']=='linear_mixing_unknown':
             # Allocate space to keep track of parameter evolution
-            self.allTheta=np.zeros((self.A, self.reward_prior['M'], self.reward_prior['theta'].shape[1], self.actions.shape[1]))
+            self.allTheta=np.zeros((self.A, self.reward_prior['M'])+self.reward_prior['theta'].shape[1:]+(self.actions.shape[1],))
             
             # Make sure all prior information is provided
             assert ('A_0' in self.reward_prior) and ('Lambda_0' in self.reward_prior) and ('nu_0' in self.reward_prior) and ('C_0' in self.reward_prior), 'Missing prior information for linear_mixing_unknown parameters'
             # Precompute
-            self.reward_prior['A_0Lambda_0']=np.einsum('adb,abc->adc', self.reward_prior['A_0'], self.reward_prior['Lambda_0'])
+            self.reward_prior['A_0Lambda_0']=np.einsum('a...db,a...bc->a...dc', self.reward_prior['A_0'], self.reward_prior['Lambda_0'])
         
     def update_reward_posterior(self, t, update_type='sequential'):
         """ Update the posterior of the reward density, based on available information at time t
@@ -109,37 +115,40 @@ class MonteCarloPosterior(object):
             # Kernel-based
             elif self.reward_prior['sampling']=='kernel':
                 # Compute kernel sufficient statistics
-                kernel_theta=self.reward_prior['sampling_alpha'] * self.reward_posterior['theta'] + (1-self.reward_prior['sampling_alpha']) * np.einsum('am,amd->ad', self.reward_posterior['weights'], self.reward_posterior['theta'])[:,None,:]
+                kernel_theta=self.reward_prior['sampling_alpha'] * self.reward_posterior['theta'] + (1-self.reward_prior['sampling_alpha']) * np.einsum('am,am...d->a...d', self.reward_posterior['weights'], self.reward_posterior['theta'])[:,None]
                 theta_diff=self.reward_posterior['theta']-kernel_theta
-                kernel_Sigma=np.einsum('am,amdb->adb', self.reward_posterior['weights'], theta_diff[:,:,:,None]*theta_diff[:,:,None,:])
+                kernel_Sigma=np.einsum('am,am...db->a...db', self.reward_posterior['weights'], theta_diff[...,:,None]*theta_diff[...,None,:])
+                '''
                 # TODO: can we vectorize over A?
                 for a in np.arange(self.A):
+                    # TODO: diagonal not working for more than 2D
                     kernel_Sigma[a,:,:]+=np.diag(np.diag(kernel_Sigma[a,:,:])<self.reward_prior['sampling_sigma'])*self.reward_prior['sampling_sigma']
+                '''
+                kernel_Sigma[..., np.arange(kernel_Sigma.shape[-1]), np.arange(kernel_Sigma.shape[-1])]+=(kernel_Sigma[..., np.arange(kernel_Sigma.shape[-1]), np.arange(kernel_Sigma.shape[-1])]<self.reward_prior['sampling_sigma'])*self.reward_prior['sampling_sigma']
                 # Double check valid covariance matrix (TODO: better/more elegant checking scheme)
-                kernel_Sigma[np.any(np.isinf(kernel_Sigma), axis=(1,2)) | np.any(np.isnan(kernel_Sigma), axis=(1,2))]=self.reward_prior['sampling_sigma']*np.eye(kernel_Sigma.shape[2])
-                # positive-definite
-                kernel_Sigma[np.any(np.linalg.eigvals(kernel_Sigma)<=0., axis=1)]=self.reward_prior['sampling_sigma']*np.eye(kernel_Sigma.shape[2])
-                
+                kernel_Sigma[np.any(np.isinf(kernel_Sigma), axis=(-2,-1)) | np.any(np.isnan(kernel_Sigma), axis=(-2,-1))]=self.reward_prior['sampling_sigma']*np.eye(kernel_Sigma.shape[-1])
                 # Draw from kernel centered in resampled
-                self.reward_posterior['theta']=theta_resampled + np.einsum('adb,amb->amd', np.linalg.cholesky(kernel_Sigma), stats.norm.rvs(size=self.reward_posterior['theta'].shape))
+                self.reward_posterior['theta']=theta_resampled + np.einsum('a...db,am...b->am...d', my_cholesky(kernel_Sigma, precision=self.reward_prior['sampling_sigma'], fix_type='strict_replace'), stats.norm.rvs(size=self.reward_posterior['theta'].shape))
             
             # Density assisted
             elif self.reward_prior['sampling']=='density':
                 # Compute density sufficient statistics
-                density_theta=np.einsum('am,amd->ad', self.reward_posterior['weights'], self.reward_posterior['theta'])[:,None,:]
+                density_theta=np.einsum('am,am...d->a...d', self.reward_posterior['weights'], self.reward_posterior['theta'])[:,None]
                 theta_diff=self.reward_posterior['theta']-density_theta
-                density_Sigma=np.einsum('am,amdb->adb', self.reward_posterior['weights'], theta_diff[:,:,:,None]*theta_diff[:,:,None,:])
+                density_Sigma=np.einsum('am,am...db->a...db', self.reward_posterior['weights'], theta_diff[...,:,None]*theta_diff[...,None,:])
                 # Just to have a minimum variance
+                '''
                 # TODO: can we vectorize over A?
                 for a in np.arange(self.A):
+                    # TODO: diagonal not working for more than 2D
                     density_Sigma[a,:,:]+=np.diag(np.diag(density_Sigma[a,:,:])<self.reward_prior['sampling_sigma'])*self.reward_prior['sampling_sigma']
+                '''
+                    
+                density_Sigma[..., np.arange(density_Sigma.shape[-1]), np.arange(density_Sigma.shape[-1])]+=(density_Sigma[..., np.arange(density_Sigma.shape[-1]), np.arange(density_Sigma.shape[-1])]<self.reward_prior['sampling_sigma'])*self.reward_prior['sampling_sigma']
                 # Double check valid covariance matrix (TODO: better/more elegant checking scheme)
-                density_Sigma[np.any(np.isinf(density_Sigma), axis=(1,2)) | np.any(np.isnan(density_Sigma), axis=(1,2))]=self.reward_prior['sampling_sigma']*np.eye(density_Sigma.shape[2])
-                # positive-definite
-                density_Sigma[np.any(np.linalg.eigvals(density_Sigma)<=0., axis=1)]=self.reward_prior['sampling_sigma']*np.eye(density_Sigma.shape[2])
-                
+                density_Sigma[np.any(np.isinf(density_Sigma), axis=(-2,-1)) | np.any(np.isnan(density_Sigma), axis=(-2,-1))]=self.reward_prior['sampling_sigma']*np.eye(density_Sigma.shape[-1])
                 # Draw from Gaussian density
-                self.reward_posterior['theta']=density_theta + np.einsum('adb,amb->amd', np.linalg.cholesky(density_Sigma), stats.norm.rvs(size=self.reward_posterior['theta'].shape))
+                self.reward_posterior['theta']=density_theta + np.einsum('a...db,am...b->am...d', my_cholesky(density_Sigma, precision=self.reward_prior['sampling_sigma'], fix_type='strict_replace'), stats.norm.rvs(size=self.reward_posterior['theta'].shape))
 
             else:
                 raise ValueError('Invalid reward_posterior regressor sampling={}'.format(self.reward_prior['sampling']))
@@ -175,7 +184,7 @@ class MonteCarloPosterior(object):
         # Equal weights due to resampling
         self.reward_posterior['weights']=np.ones((self.A,self.reward_prior['M']))
         # Zero weight for non-sense
-        self.reward_posterior['weights'][np.any(np.isinf(self.reward_posterior['theta']),axis=2) | np.any(np.isnan(self.reward_posterior['theta']),axis=2)]=0.
+        self.reward_posterior['weights'][np.any(np.reshape(np.isinf(self.reward_posterior['theta']),(self.A,self.reward_prior['M'],-1)),axis=-1) | np.any(np.reshape(np.isnan(self.reward_posterior['theta']),(self.A,self.reward_prior['M'],-1)),axis=-1)]=0.
         # Based on likelihood of reward for played arm
         a_played=self.actions[:,t]==1
         # Binomial/Bernoulli reward
@@ -213,6 +222,17 @@ class MonteCarloPosterior(object):
             # Linear weights
             self.reward_posterior['weights'][a_played]=np.exp(log_weights-np.max(log_weights))
             self.reward_posterior['weights'][a_played][np.isnan(self.reward_posterior['weights'][a_played])]=np.finfo(float).eps
+            
+        # Softmax rewards
+        elif self.reward_function['type'] == 'softmax':
+            xTheta=np.einsum('d,amcd->amc', self.context[:,t], self.reward_posterior['theta'][a_played])
+            log_weights=(xTheta[:,:,self.rewards[a_played,t].astype(int)]-np.log(np.exp(xTheta).sum(axis=2,keepdims=True)))[:,:,0]
+            # Double-check
+            log_weights[np.any(np.reshape(np.isinf(self.reward_posterior['theta'][a_played]),(1,self.reward_prior['M'],-1)),axis=-1) | np.any(np.reshape(np.isnan(self.reward_posterior['theta'][a_played]),(1,self.reward_prior['M'],-1)),axis=-1)]=-np.inf
+            log_weights[np.isnan(log_weights)]=-np.inf
+            # Linear weights
+            self.reward_posterior['weights'][a_played]=np.exp(log_weights-np.max(log_weights))
+            self.reward_posterior['weights'][a_played][np.isnan(self.reward_posterior['weights'][a_played])]=np.finfo(float).eps
         else:
             raise ValueError('Invalid reward_function={}'.format(self.reward_function['type']))
             
@@ -235,14 +255,18 @@ class MonteCarloPosterior(object):
                     # Draw variance samples from inverse gamma
                     self.reward_posterior['sigma'][:,:,0]=stats.invgamma.rvs(self.reward_prior['alpha'], scale=self.reward_prior['beta'], size=(self.A,self.reward_prior['M']))
                     # Then multivariate Gaussian parameters
-                    self.reward_posterior['theta']=self.reward_prior['theta'][:,None,:]+np.sqrt(self.reward_posterior['sigma'])*np.einsum('aid,md->ami',np.linalg.cholesky(self.reward_prior['Sigma']), stats.norm.rvs(size=(self.reward_prior['M'],self.reward_prior['theta'].shape[1])))
+                    self.reward_posterior['theta']=self.reward_prior['theta'][:,None,:]+np.sqrt(self.reward_posterior['sigma'])*np.einsum('aid,amd->ami',my_cholesky(self.reward_prior['Sigma']), stats.norm.rvs(size=(self.A,self.reward_prior['M'],self.reward_prior['theta'].shape[1])))
                 else:
                     # Multivariate Gaussian parameters, with known sigma
-                    self.reward_posterior['theta']=self.reward_prior['theta'][:,None,:]+np.einsum('aid,md->ami',np.linalg.cholesky(self.reward_prior['Sigma']), stats.norm.rvs(size=(self.reward_prior['M'],self.reward_prior['theta'].shape[1])))
+                    self.reward_posterior['theta']=self.reward_prior['theta'][:,None,:]+np.einsum('aid,amd->ami',my_cholesky(self.reward_prior['Sigma']), stats.norm.rvs(size=(self.A,self.reward_prior['M'],self.reward_prior['theta'].shape[1])))
             # Logistic reward
             elif self.reward_function['type'] == 'logistic' and self.reward_prior['dist'] == 'Gaussian':
                 # Multivariate Gaussian parameter prior
-                self.reward_posterior['theta']=self.reward_prior['theta'][:,None,:]+np.einsum('aid,md->ami',np.linalg.cholesky(self.reward_prior['Sigma']), stats.norm.rvs(size=(self.reward_prior['M'],self.reward_prior['theta'].shape[1])))
+                self.reward_posterior['theta']=self.reward_prior['theta'][:,None,:]+np.einsum('aid,amd->ami',my_cholesky(self.reward_prior['Sigma']), stats.norm.rvs(size=(self.A,self.reward_prior['M'],self.reward_prior['theta'].shape[1])))
+            # Softmax reward
+            elif self.reward_function['type'] == 'softmax' and self.reward_prior['dist'] == 'Gaussian':
+                # Multivariate Gaussian parameter prior
+                self.reward_posterior['theta']=self.reward_prior['theta'][:,None]+np.einsum('acdi,ambi->amcd',my_cholesky(self.reward_prior['Sigma']), stats.norm.rvs(size=(self.A,self.reward_prior['M'],self.reward_prior['theta'].shape[1],self.reward_prior['theta'].shape[2])))
             else:
                 raise ValueError('Invalid reward_function={} with reward_prior={} combination'.format(self.reward_function['type'], self.reward_prior['dist'].name))
             
