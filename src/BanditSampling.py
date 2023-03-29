@@ -169,6 +169,68 @@ class BanditSampling(Bandit):
         # Compute regret
         self.regrets=self.true_expected_rewards.max(axis=0) - self.rewards.sum(axis=0)
         self.cumregrets=self.regrets.cumsum()
+    
+    def execute_interactive(self, t, y=None, context=None, t_max=100):
+        """ Execute the Bayesian bandit interactively
+                That is, return the selected action, based on history up to t
+        Args:
+            t: time/interaction for the bandit
+            y: last observed reward (i.e., at time t)
+            context: d_context by 1 array with context for this time instant (None if does not apply)
+        Returns:
+            a: next action to execute (a_{t+1} after observing y_t)
+        """
+        ######### Internal attributes 
+        if t==0:
+            # Initialize attributes
+            self.actions=np.zeros((self.A,t_max))
+            self.rewards=np.zeros((self.A,t_max))
+            self.rewards_expected=np.zeros((self.A,t_max))
+            if context is not None:
+                # Contextual bandit
+                self.d_context=context.shape[0]
+                self.context=np.zeros((self.d_context,t_max))
+            self.arm_predictive_density={'mean':np.zeros((self.A,t_max)), 'var':np.zeros((self.A,t_max))}
+            self.arm_N_samples=np.ones(t_max)        
+        
+        ######### Execute bandit
+        # Capture context if needed
+        if context is not None:
+            # Contextual bandit
+            self.d_context=context.shape[0]
+            self.context[:,t]=context
+            
+        if t==0:
+            # Initialize reward posterior
+            self.init_reward_posterior()
+        else:
+            # Update history of rewards with latest value, for previously played action
+            previous_action=np.where(self.actions[:,t-1])
+            
+            assert y is not None, 'Need observed reward at time {}'.format(t)
+            self.rewards[previous_action,t-1]=y
+            
+            # Update parameter posterior given full evidence
+            self.update_reward_posterior(t-1)
+        
+        # Compute predictive density for each arm
+        self.compute_arm_predictive_density(t)
+
+        # Compute number of candidate arm samples, based on sampling strategy
+        self.arm_N_samples[t]=self.compute_arm_N_samples(t)
+        
+        # Pick next action
+        if self.arm_N_samples[t] == np.inf:
+            # Pick maximum 
+            action = self.arm_predictive_density[:,t].argmax()
+            self.actions[action,t]=1.
+        else:
+            # SAMPLE arm_N_samples and pick the most likely action                
+            self.actions[np.random.multinomial(1,self.arm_predictive_density['mean'][:,t], size=int(self.arm_N_samples[t])).sum(axis=0).argmax(),t]=1
+            action = np.where(self.actions[:,t]==1)[0][0]
+        
+        # Return action index
+        return int(action)
         
     def compute_arm_N_samples(self,t):
         """ Determine the number of arm samples to draw, based on policy and information available at time t
