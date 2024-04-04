@@ -1,0 +1,97 @@
+% !TEX root = smc_bandits.tex
+
+The multi-armed bandit (MAB) problem considers
+the sequential strategy one must devise when playing a row of slot machines:
+\ie which arm to play next to maximize cumulative returns.
+This analogy extends to a wide range of real-world challenges
+that require online learning, while simultaneously maximizing some notion of reward. 
+
+The arm may be a medicine a doctor must prescribe to a patient,
+the reward being the outcome of such treatment on the patient;
+or the set of resources a manager needs to allocate for competing projects,
+with the reward being the revenue attained at the end of the month;
+or the ad/product/content an online recommendation algorithm must display
+to maximize click-through rate in e-commerce.
+
+The contextual MAB,
+where at each interaction with the world
+side information (known as `context') is available,
+is a natural extension of this abstraction.
+The `context' is the physiology of the patient,
+the type of resources available for each project,
+or the features of the website user.
+
+Sequential decision processes have been studied for many decades, %and applied both within the academic and industrial communities,
+and interest has resurged
+incited by reinforcement learning (RL) advancements developed within the machine learning community~\citep{j-Mnih2015,j-Silver2017}.
+RL~\citep{b-Sutton1998} has been successfully applied to a variety of domains,
+from Monte Carlo tree search~\citep{ic-Bai2013} and hyperparameter tuning for complex optimization in science, engineering and machine learning problems~\citep{ip-Kandasamy2018, Urteaga2023},
+to revenue maximization~\citep{j-Ferreira2018} and marketing solutions~\citep{j-Schwartz2017} in business and operations research.
+RL is also popular in e-commerce and digital services,
+improving online advertising at LinkedIn~\citep{ip-Agarwal2013},
+engagement with website services at Amazon~\citep{ip-Hill2017},
+recommending targeted news at Yahoo~\citep{ip-Li2010},
+and enabling full personalization of content and art at \citet{Netflix2017}.
+
+The techniques used in these success stories are grounded on statistical advances on sequential decision processes and multi-armed bandits.
+The MAB crystallizes the fundamental trade-off between exploration and exploitation in sequential decision making.
+It has been studied throughout the 20th century, with important contributions
+by \citet{j-Thompson1935} and later \citet{j-Robbins1952}.
+Over the years, several algorithms have been proposed ---we provide an overview of state-of-the-art solutions in Section~\ref{ssec:mab}.
+However, applied use cases raise challenges that these MAB algorithms often fail to address.
+
+For instance, classic MAB algorithms do not typically generalize to problems
+%with nonlinear and non-Gaussian reward distributions,
+with nonlinear reward dependencies or non-Gaussian reward distributions,
+as exact computation of their statistics of interest is intractable for distributions not in the exponential family~\citep{ic-Korda2013,j-Russo2018}.
+%---we provide an overview of techniques targeted to non-linear reward distributions in Section~\ref{ssec:mab}.
+More importantly, these algorithms are commonly designed under the assumption of stationary reward distributions,
+\ie the reward function does not change over-time,
+a premise often violated in practice.
+
+We hereby relax these constraints,
+and consider time-varying models and nonlinear reward functions.
+We propose to use sequential Monte Carlo (SMC) for non-stationary bandits with nonlinear rewards,
+where the world ---the reward function--- is time-varying,
+and rewards are sequentially observed for the played arms.
+
+SMC methods~\citep{j-Arulampalam2002,b-Doucet2001,j-Djuric2003} have been widely used
+to estimate posterior densities and expectations in sequential problems with probabilistic models
+that are too complex to treat analytically,
+with many successful applications in science and engineering \citep{b-Ristic2004,j-Leeuwen2009,j-Ionides2006,j-Creal2012}.
+
+In Bayesian MAB algorithms,
+the agent must compute sufficient statistics of each arm's rewards over time,
+for which sequential updates to the posterior of the parameters of interest must be computed.
+We here show that SMC-based, sequentially updated random measures of per-arm parameter posteriors,
+enable computation of any statistic a Bayesian MAB policy might require.
+
+We generalize existing MAB policies beyond their original stationary setting,
+and accommodate complex reward models:
+those for which sampling may be performed even if analytic computation of summary statistics is infeasible.
+%
+We study latent dynamical systems with non-Gaussian and nonlinear reward functions,
+for which SMC computes accurate posterior approximations.
+Consequently, we devise a flexible SMC-based framework for solving non-stationary and nonlinear MABs.
+
+Our \textbf{contribution} is a SMC-based MAB framework that:
+\begin{enumerate}[(i)]
+	\item computes SMC-based random measure posterior MAB densities utilized by Bayesian MAB policies;
+	\item requires knowledge of the reward function only up to a proportionality constant,
+		\ie it accommodates nonlinear and non-Gaussian bandit rewards; and,
+	\item is applicable to time-varying reward models, \ie to restless or non-stationary multi-armed bandits.
+\end{enumerate}
+
+The proposed SMC-based MAB framework 
+($i$) leverages SMC for both posterior sampling and estimation of sufficient statistics utilized by Bayesian MAB policies,
+\ie Thompson sampling and Upper Confidence Bounds; 
+($ii$) addresses restless bandits via the general linear dynamical system, and accommodates unknown parameters via Rao-Blackwellization; and
+($iii$) targets nonlinear and non-Gaussian reward models,
+accommodating stateless and context-dependent, discrete and continuous reward distributions. 
+
+We introduce in Section~\ref{sec:background} the preliminaries for our work,
+which combines sequential Monte Carlo techniques described in Section~\ref{ssec:smc},
+with multi-armed bandit algorithms detailed in Section~\ref{ssec:mab}.
+We present the SMC-based MAB framework in Section~\ref{sec:smc_mab},
+and evaluate its performance for Thompson sampling and Bayes-Upper Confidence Bound policies in Section~\ref{sec:evaluation}.
+We summarize and conclude with promising research directions in Section~\ref{sec:conclusion}.

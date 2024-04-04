@@ -1,0 +1,300 @@
+% !TEX root = smc_bandits.tex
+
+\subsubsection{Bernoulli bandits, A=2}
+\label{asssec:static_bandits_bernoulli_2}
+
+We present below cumulative regret results for different parameterizations of 2-armed Bernoulli bandits.
+
+% (0.1, 0.2)
+\begin{figure}[!h]
+	\centering
+	\begin{subfigure}[b]{\textwidth}
+		\centering
+		\includegraphics[width=0.75\textwidth]{./fods_figs/static/bernoulli/A2/theta0.1_0.2_M1000_cumulative_regret}
+		\caption{Analytical and SMC-based ($M=1000$) TS and Bayes-UCB.}
+	\end{subfigure}
+	
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A2/theta0.1_0.2_allM_cumulative_regret_ts}
+		\caption{SMC-based TS: impact of $M$.}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A2/theta0.1_0.2_allM_cumulative_regret_bucb}
+		\caption{SMC-based Bayes-UCB: impact of $M$}
+	\end{subfigure}
+	
+	\caption{Mean cumulative regret (standard deviation shown as the shaded region) of Bayesian policies in a stationary two-armed Bernoulli bandit, with $\theta_0=0.1, \ \theta_1=0.2$.}
+\end{figure}
+
+% (0.1, 0.3)
+\begin{figure}[!h]
+	\centering
+	\begin{subfigure}[b]{\textwidth}
+		\centering
+		\includegraphics[width=0.75\textwidth]{./fods_figs/static/bernoulli/A2/theta0.1_0.3_M1000_cumulative_regret}
+		\caption{Analytical and SMC-based ($M=1000$) TS and Bayes-UCB.}
+	\end{subfigure}
+	
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A2/theta0.1_0.3_allM_cumulative_regret_ts}
+		\caption{SMC-based TS: impact of $M$.}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A2/theta0.1_0.3_allM_cumulative_regret_bucb}
+		\caption{SMC-based Bayes-UCB: impact of $M$}
+	\end{subfigure}
+	
+	\caption{Mean cumulative regret (standard deviation shown as the shaded region) of Bayesian policies in a stationary two-armed Bernoulli bandit, with $\theta_0=0.1, \ \theta_1=0.3$.}
+\end{figure}
+
+% (0.5, 0.6)
+\begin{figure}[!h]
+	\centering
+	\begin{subfigure}[b]{\textwidth}
+		\centering
+		\includegraphics[width=0.75\textwidth]{./fods_figs/static/bernoulli/A2/theta0.5_0.6_M1000_cumulative_regret}
+		\caption{Analytical and SMC-based ($M=1000$) TS and Bayes-UCB.}
+	\end{subfigure}
+	
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A2/theta0.5_0.6_allM_cumulative_regret_ts}
+		\caption{SMC-based TS: impact of $M$.}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A2/theta0.5_0.6_allM_cumulative_regret_bucb}
+		\caption{SMC-based Bayes-UCB: impact of $M$}
+	\end{subfigure}
+	
+	\caption{Mean cumulative regret (standard deviation shown as the shaded region) of Bayesian policies in a stationary two-armed Bernoulli bandit, with $\theta_0=0.5, \ \theta_1=0.6$.}
+\end{figure}
+
+% (0.5, 0.7)
+\begin{figure}[!h]
+	\centering
+	\begin{subfigure}[b]{\textwidth}
+		\centering
+		\includegraphics[width=0.75\textwidth]{./fods_figs/static/bernoulli/A2/theta0.5_0.7_M1000_cumulative_regret}
+		\caption{Analytical and SMC-based ($M=1000$) TS and Bayes-UCB.}
+	\end{subfigure}
+	
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A2/theta0.5_0.7_allM_cumulative_regret_ts}
+		\caption{SMC-based TS: impact of $M$.}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A2/theta0.5_0.7_allM_cumulative_regret_bucb}
+		\caption{SMC-based Bayes-UCB: impact of $M$}
+	\end{subfigure}
+	
+	\caption{Mean cumulative regret (standard deviation shown as the shaded region) of Bayesian policies in a stationary two-armed Bernoulli bandit, with $\theta_0=0.5, \ \theta_1=0.7$.}
+\end{figure}
+
+% (0.7, 0.9)
+\begin{figure}[!h]
+	\centering
+	\begin{subfigure}[b]{\textwidth}
+		\centering
+		\includegraphics[width=0.75\textwidth]{./fods_figs/static/bernoulli/A2/theta0.7_0.9_M1000_cumulative_regret}
+		\caption{Analytical and SMC-based ($M=1000$) TS and Bayes-UCB.}
+	\end{subfigure}
+	
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A2/theta0.7_0.9_allM_cumulative_regret_ts}
+		\caption{SMC-based TS: impact of $M$.}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A2/theta0.7_0.9_allM_cumulative_regret_bucb}
+		\caption{SMC-based Bayes-UCB: impact of $M$}
+	\end{subfigure}
+	
+	\caption{Mean cumulative regret (standard deviation shown as the shaded region) of Bayesian policies in a stationary two-armed Bernoulli bandit, with $\theta_0=0.7, \ \theta_1=0.9$.}
+\end{figure}
+
+% (0.8, 0.9)
+\begin{figure}[!h]
+	\centering
+	\begin{subfigure}[b]{\textwidth}
+		\centering
+		\includegraphics[width=0.75\textwidth]{./fods_figs/static/bernoulli/A2/theta0.8_0.9_M1000_cumulative_regret}
+		\caption{Analytical and SMC-based ($M=1000$) TS and Bayes-UCB.}
+	\end{subfigure}
+	
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A2/theta0.8_0.9_allM_cumulative_regret_ts}
+		\caption{SMC-based TS: impact of $M$.}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A2/theta0.8_0.9_allM_cumulative_regret_bucb}
+		\caption{SMC-based Bayes-UCB: impact of $M$}
+	\end{subfigure}
+	
+	\caption{Mean cumulative regret (standard deviation shown as the shaded region) of Bayesian policies in a stationary two-armed Bernoulli bandit, with $\theta_0=0.8, \ \theta_1=0.9$.}
+\end{figure}
+
+\clearpage
+\subsubsection{Bernoulli bandits, A=5}
+\label{asssec:static_bandits_bernoulli_5}
+
+We present below cumulative regret results for different parameterizations of 5-armed Bernoulli bandits.
+
+% theta0.1_0.2_0.3_0.4_0.5
+\begin{figure}[!h]
+	\centering
+	\begin{subfigure}[b]{\textwidth}
+		\centering
+		\includegraphics[width=0.75\textwidth]{./fods_figs/static/bernoulli/A5/theta0.1_0.2_0.3_0.4_0.5_M1000_cumulative_regret}
+		\caption{Analytical and SMC-based ($M=1000$) TS and Bayes-UCB.}
+	\end{subfigure}
+	
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A5/theta0.1_0.2_0.3_0.4_0.5_allM_cumulative_regret_ts}
+		\caption{SMC-based TS: impact of $M$.}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A5/theta0.1_0.2_0.3_0.4_0.5_allM_cumulative_regret_bucb}
+		\caption{SMC-based Bayes-UCB: impact of $M$}
+	\end{subfigure}
+	
+	\caption{Mean cumulative regret (standard deviation shown as the shaded region) of Bayesian policies in a stationary five-armed Bernoulli bandit:
+		$\theta_0=0.1, \ \theta_1=0.2, \ \theta_3=0.3, \ \theta_4=0.4, \ \theta_5=0.5$.
+	}
+\end{figure}
+
+% theta0.1_0.3_0.5_0.6_0.8
+\begin{figure}[!h]
+	\centering
+	\begin{subfigure}[b]{\textwidth}
+		\centering
+		\includegraphics[width=0.75\textwidth]{./fods_figs/static/bernoulli/A5/theta0.1_0.3_0.5_0.6_0.8_M1000_cumulative_regret}
+		\caption{Analytical and SMC-based ($M=1000$) TS and Bayes-UCB.}
+	\end{subfigure}
+	
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A5/theta0.1_0.3_0.5_0.6_0.8_allM_cumulative_regret_ts}
+		\caption{SMC-based TS: impact of $M$.}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A5/theta0.1_0.3_0.5_0.6_0.8_allM_cumulative_regret_bucb}
+		\caption{SMC-based Bayes-UCB: impact of $M$}
+	\end{subfigure}
+	
+	\caption{Mean cumulative regret (standard deviation shown as the shaded region) of Bayesian policies in a stationary five-armed Bernoulli bandit:
+		 $\theta_0=0.1, \ \theta_1=0.3, \ \theta_3=0.5, \ \theta_4=0.6, \ \theta_5=0.8$.
+	}
+\end{figure}
+
+% theta0.1_0.3_0.5_0.8_0.9
+\begin{figure}[!h]
+	\centering
+	\begin{subfigure}[b]{\textwidth}
+		\centering
+		\includegraphics[width=0.75\textwidth]{./fods_figs/static/bernoulli/A5/theta0.1_0.3_0.5_0.8_0.9_M1000_cumulative_regret}
+		\caption{Analytical and SMC-based ($M=1000$) TS and Bayes-UCB.}
+	\end{subfigure}
+	
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A5/theta0.1_0.3_0.5_0.8_0.9_allM_cumulative_regret_ts}
+		\caption{SMC-based TS: impact of $M$.}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A5/theta0.1_0.3_0.5_0.8_0.9_allM_cumulative_regret_bucb}
+		\caption{SMC-based Bayes-UCB: impact of $M$}
+	\end{subfigure}
+	
+	\caption{Mean cumulative regret (standard deviation shown as the shaded region) of Bayesian policies in a stationary five-armed Bernoulli bandit:
+		$\theta_0=0.1, \ \theta_1=0.3, \ \theta_3=0.5, \ \theta_4=0.8, \ \theta_5=0.9$.
+	}
+\end{figure}
+
+% theta0.1_0.5_0.6_0.7_0.9
+\begin{figure}[!h]
+	\centering
+	\begin{subfigure}[b]{\textwidth}
+		\centering
+		\includegraphics[width=0.75\textwidth]{./fods_figs/static/bernoulli/A5/theta0.1_0.5_0.6_0.7_0.9_M1000_cumulative_regret}
+		\caption{Analytical and SMC-based ($M=1000$) TS and Bayes-UCB.}
+	\end{subfigure}
+	
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A5/theta0.1_0.5_0.6_0.7_0.9_allM_cumulative_regret_ts}
+		\caption{SMC-based TS: impact of $M$.}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A5/theta0.1_0.5_0.6_0.7_0.9_allM_cumulative_regret_bucb}
+		\caption{SMC-based Bayes-UCB: impact of $M$}
+	\end{subfigure}
+	
+	\caption{Mean cumulative regret (standard deviation shown as the shaded region) of Bayesian policies in a stationary five-armed Bernoulli bandit:
+		 $\theta_0=0.1, \ \theta_1=0.5, \ \theta_3=0.6, \ \theta_4=0.7, \ \theta_5=0.9$.
+	}
+\end{figure}
+
+% theta0.3_0.4_0.5_0.7_0.9
+\begin{figure}[!h]
+	\centering
+	\begin{subfigure}[b]{\textwidth}
+		\centering
+		\includegraphics[width=0.75\textwidth]{./fods_figs/static/bernoulli/A5/theta0.3_0.4_0.5_0.7_0.9_M1000_cumulative_regret}
+		\caption{Analytical and SMC-based ($M=1000$) TS and Bayes-UCB.}
+	\end{subfigure}
+	
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A5/theta0.3_0.4_0.5_0.7_0.9_allM_cumulative_regret_ts}
+		\caption{SMC-based TS: impact of $M$.}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A5/theta0.3_0.4_0.5_0.7_0.9_allM_cumulative_regret_bucb}
+		\caption{SMC-based Bayes-UCB: impact of $M$}
+	\end{subfigure}
+	
+	\caption{Mean cumulative regret (standard deviation shown as the shaded region) of Bayesian policies in a stationary five-armed Bernoulli bandit:
+		 $\theta_0=0.3, \ \theta_1=0.4, \ \theta_3=0.5, \ \theta_4=0.7, \ \theta_5=0.9$.
+	}
+\end{figure}
+
+% theta0.5_0.6_0.7_0.8_0.9
+\begin{figure}[!h]
+	\centering
+	\begin{subfigure}[b]{\textwidth}
+		\centering
+		\includegraphics[width=0.75\textwidth]{./fods_figs/static/bernoulli/A5/theta0.5_0.6_0.7_0.8_0.9_M1000_cumulative_regret}
+		\caption{Analytical and SMC-based ($M=1000$) TS and Bayes-UCB.}
+	\end{subfigure}
+	
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A5/theta0.5_0.6_0.7_0.8_0.9_allM_cumulative_regret_ts}
+		\caption{SMC-based TS: impact of $M$.}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/bernoulli/A5/theta0.5_0.6_0.7_0.8_0.9_allM_cumulative_regret_bucb}
+		\caption{SMC-based Bayes-UCB: impact of $M$}
+	\end{subfigure}
+	
+	\caption{Mean cumulative regret (standard deviation shown as the shaded region) of Bayesian policies in a stationary five-armed Bernoulli bandit:
+		 $\theta_0=0.5, \ \theta_1=0.6, \ \theta_3=0.7, \ \theta_4=0.8, \ \theta_5=0.9$.
+	}
+\end{figure}

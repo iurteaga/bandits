@@ -1,0 +1,64 @@
+%%%%%%%% iurteaga packages %%%%%%
+%\usepackage{fullname}
+\usepackage[utf8]{inputenc} % allow utf-8 input
+\usepackage[T1]{fontenc}    % use 8-bit T1 fonts
+
+% Formatting
+\usepackage{setspace}	% Easy setting of linespaces
+%\usepackage{hyperref}       % hyperlinks
+\usepackage[colorlinks=true]{hyperref}
+%\usepackage[bookmarksopen,bookmarksdepth=3,colorlinks,citecolor=red,hypertexnames=true,allcolors=darkblue]{hyperref}
+\usepackage{url}            % simple URL typesetting
+\usepackage{enumerate}
+\usepackage{ifthen}
+\usepackage{sidecap}
+\usepackage{helvet}
+\usepackage{fancyhdr} % For header/footer tweaking
+\usepackage{lastpage} % To automatically figure out total page count
+\usepackage{comment}
+
+% Math
+\usepackage{amsmath}
+\usepackage[mediummath]{nccmath} %extensions to amsmath
+\usepackage{amsfonts}	% blackboard math symbols
+\usepackage{mathtools}	% For \coloneq
+\usepackage{amsthm}	% Nicer theorems?
+\usepackage{amssymb} % More symbols?
+\usepackage{nicefrac}       % compact symbols for 1/2, etc.
+\usepackage{microtype}      % microtypography
+\usepackage{dsfont} % Indicator that works with Type1
+\usepackage{upgreek} % Additional greek letters
+
+% For euro sympobl
+\usepackage{eurosym}
+
+% Graphics
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{wrapfig}
+\usepackage{float} %Stay where told
+
+% Tables
+\usepackage{booktabs}       % professional-quality tables
+\usepackage{multirow} % to be able to have multiple row expanding cell
+\usepackage[table]{xcolor}
+\usepackage{tabularx}
+\usepackage{arydshln} % For dashlines
+\usepackage{makecell} % To allow for breaking lines within table
+% New column types, left/center/right text aligned, given horizontal width
+\usepackage{ragged2e} % To justify table text
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+% For some reason, justify seems to add some vertical space, remove with vspace
+\newcolumntype{J}[1]{>{\vspace*{-2ex}\justify\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+% To draw graphs (load after xcolor to avoid options clash)
+\usepackage{tikz}
+\usetikzlibrary{bayesnet} % Library for bayesian networks
+
+% Algorithms
+\usepackage{algorithm}
+\usepackage{algorithmic}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

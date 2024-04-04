@@ -1,0 +1,56 @@
+% !TEX root = smc_bandits.tex
+We presented a sequential Monte Carlo (SMC)-based framework for multi-armed bandits (MABs),
+where we combine SMC inference with state-of-the-art Bayesian bandit policies.
+We extend the applicability of Bayesian MAB policies ---Thompson sampling and Bayes-UCB---
+to previously elusive bandit environments,
+by accommodating nonlinear and time-varying models of the world,
+via SMC-based inference of the sufficient statistics of interest.
+
+The proposed SMC-based Bayesian MAB framework allows for interpretable modeling of nonlinear and time-evolving reward functions,
+as it sequentially learns the sufficient statistics and dynamics of the bandit from online data,
+to find the right exploration-exploitation balance.
+%
+Empirical results show good cumulative regret performance of the proposed policies
+in simulated MAB environments that previous algorithms can not address,
+and in practical scenarios (personalized news article recommendation)
+where time-varying models of data are required.
+
+%We show that SMC-based random measure approximations
+%to Bayesian bandit policies' posteriors of interest 
+%is accurate enough for such agents to find satisfactory exploration-exploitation tradeoffs.
+We show that SMC-based posterior random measures 
+are accurate enough for Bayesian bandit policies to find satisfactory exploration-exploitation tradeoffs.
+The proposed SMC-based Bayesian agents do not only estimate the evolving latent parameters,
+but also quantify how their uncertainty maps to the uncertainty over the optimality of each arm,
+adjusting to non-stationary environments.
+%
+Careful computation of SMC random measures
+is fundamental for the accuracy of the sequential approximation to the posteriors of interest,
+and the downstream performance of the proposed SMC-based MAB policies.
+The time-varying uncertainty of the sequentially updated parameter posterior encourages exploration of arms
+that have not been played recently, but may have reached new exploitable rewards.
+%Namely, the uncertainty of the parameter posterior encourages exploration of arms that have not been played recently,
+%but may have evolved into new parameter spaces with exploitable reward distributions.
+Namely, as the posteriors of unobserved arms %---driven by the underlying dynamics---
+result in broader SMC posteriors,
+SMC-based Bayesian MAB policies are more likely to explore such arm,
+reduce their posterior's uncertainty, and in turn, update the exploration-exploitation balance.
+
+Important future work remains
+on the theoretical understanding of Thompson sampling and Bayes-UCB within the proposed SMC-based MAB framework.
+Given that SMC posteriors converge to the true posterior under suitable conditions~\citep{b-Liu2001,j-Crisan2002,j-Chopin2004},
+we hypothesize that the proposed SMC-based bandit policies can achieve sub-linear regret, under appropriate assumptions on the latent dynamics.
+
+On the one hand, \citet{ip-Gopalan2014} have shown that a logarithmic regret bound holds for Thompson sampling in complex problems,
+for bandits with discretely-supported priors over the parameter space without additional structural properties,
+such as conjugate prior structure or independence across arms.
+%
+On the other, regret of a non-stationary bandit agent is linear if optimal arm changes occur continuously or adversarially.
+However, as long as the bandit's latent dynamics incur in a controlled number of optimal arm changes,
+SMC can provide accurate enough posteriors to find the right exploration-exploitation tradeoff, as we show empirically here.
+
+A theoretical analysis of the dependency between
+the dynamic bandit model's characteristics,
+the resulting rate of optimal arm changes,
+and SMC posterior convergence guarantees,
+leading to formal regret bounds for the proposed SMC-based Bayesian policies, is an open research direction.

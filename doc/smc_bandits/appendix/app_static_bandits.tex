@@ -1,0 +1,88 @@
+% !TEX root = smc_bandits.tex
+
+We here apply the proposed SMC-based Bayesian policies as in Algorithm~\ref{alg:sir-mab}
+to the original settings where Thompson sampling and Bayes-UCB were derived,
+\ie for stationary bandits with Bernoulli and contextual, linear Gaussian reward functions~\cite{ip-Kaufmann2012,ip-Garivier2011a,ic-Korda2013,ip-Agrawal2013a}.
+
+Empirical results for these bandits is provided in Section~\ref{assec:static_bandits_experiments_analytical},
+while the stationary logistic bandit case is evaluated in Section~\ref{assec:static_bandits_experiments_logistic},
+where we also evaluate the impact of sample size $M$ in the SMC-based bandit algorithms.
+
+\subsection{SMC-based policies for stationary bandits}
+\label{assec:static_bandits_smc}
+In stationary bandits, 
+there are no time-varying parameters, \ie $\theta_t=\theta, \ \forall t$.
+For these cases, SIR-based parameter propagation becomes troublesome \cite{b-Liu2001}.
+To mitigate such issues, several alternatives have been proposed in the SMC community:
+\eg artificial parameter evolution \cite{j-Gordon1993},
+kernel smoothing \cite{b-Liu2001}, and density assisted techniques \cite{ip-Djuric2004}.
+
+We implement density assisted SMC,
+rather than kernel based particle filters as in~\cite{j-Cherkassky2013},
+where one approximates the posterior of the unknown parameters with a density of choice.
+%
+Density assisted importance sampling is a well studied SMC approach
+that extends random-walking and kernel-based alternatives~\cite{j-Gordon1993, ib-Liu2001, ip-Djuric2004},
+with its asymptotic correctness guaranteed for the static parameter case.
+We acknowledge that any of the SMC techniques that further mitigate
+the challenges of estimating constant parameters
+(\eg parameter smoothing~\cite{j-Carvalho2010,j-Olsson2006,j-Olsson2014}
+or nested SMC methods~\cite{j-Chopin2011,j-Crisan2013})
+can only improve the accuracy of the implemented SMC-based policies. 
+
+More precisely,
+we approximate the posterior of the unknown parameters,
+given the current state of knowledge,
+with a Gaussian distribution
+\begin{equation}
+p(\theta_a|\HH_{1:t}) \approx \N{\theta_a|\hat{\theta}_{t,a}, \hat{\Sigma}_{\theta_{t,a}}},
+\end{equation}
+based on the updated random measure.
+Namely, the sufficient statistics of the distribution 
+are estimated based on samples and weights of the SMC random measure $p_M(\theta_{t,a})=\sum_{m=1}^M w_{t}^{(m)} \delta\left(\theta_{t,a}-\theta_{t,a}^{(m)}\right)$,
+available at each bandit interaction; \ie
+\begin{equation}
+\begin{split}
+\hat{\theta}_{t,a} &= \sum_{i=1}^{M} w_{t,a}^{(m)} \theta^{(m)}_{t,a} \;,  \\
+\hat{\Sigma}_{\theta_{t,a}} &= \sum_{i=1}^{M} w_{t,a}^{(m)}(\theta^{(m)}_{t,a} - \hat{\theta}_{t,a})(\theta^{(m)}_{t,a} - \hat{\theta}_{t,a})^\top \;.
+\end{split}
+\label{eq:proposedMethod_unknownAB_DA_estSuffStatistics}
+\end{equation}
+Hence, when addressing static bandits,
+we slightly modify Algorithm~\ref{alg:sir-mab},
+and propagate parameters in Steps 5 and 9-b,
+by drawing from
+\begin{equation}
+p(\theta_{t+1,a}|\theta_{t,a})=p(\theta_{t,a}|\HH_{1:t}) \approx \N{\theta_{t,a}|\hat{\theta}_{t,a}, \hat{\Sigma}_{\theta_{t,a}}} \;.
+\end{equation}
+
+\subsection{Experiments with SMC-based Bayesian policies for Bernoulli and Gaussian stationary bandits}
+\label{assec:static_bandits_experiments_analytical}
+
+We provide results for stationary bandits with 2 and 5 arms,
+for Bernoulli rewards in Sections~\ref{asssec:static_bandits_bernoulli_2} \& \ref{asssec:static_bandits_bernoulli_5},
+and contextual-Gaussian rewards in Sections~\ref{asssec:static_bandits_linearGaussian_2} \& \ref{asssec:static_bandits_linearGaussian_5}, respectively.
+
+Provided empirical evidence showcases
+how the proposed SMC-based Bayesian policies perform satisfactorily in both stationary bandit settings.
+The more realistic assumption of unknown reward variance $\sigma^2$ for the contextual, linear Gaussian case is also evaluated,
+where SMC-based policies are shown to be equally competitive.
+
+We observe that, as the posterior random measure $p_M(\theta_{t,a})$ becomes more accurate, \eg for $M\geq 500$,
+SMC-based TS and UCB perform similarly to their counterpart benchmark policies that make use of analytical posteriors.
+
+We note a increased performance uncertainty due to the SMC posterior random measure,
+which is empirically reduced by increasing the number $M$ of Monte Carlo samples:
+we illustrate the impact of sample size $M$ in the provided figures.
+
+In general, $M=1000$ samples suffice in our static bandit experiments for accurate estimation of parameter posteriors.
+Advanced and dynamic determination of SMC sample size is an active research area, out of the scope of this paper.
+
+%\clearpage
+\input{./appendix/app_static_bandits_bernoulli}
+
+\clearpage
+\input{./appendix/app_static_bandits_lineargaussian}
+
+\clearpage
+\input{./appendix/app_static_bandits_logistic}

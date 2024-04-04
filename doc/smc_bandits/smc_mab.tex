@@ -1,0 +1,284 @@
+% !TEX root = smc_bandits.tex
+We use sequential Monte Carlo to compute posteriors and sufficient statistics of interest for a rich-class of MABs:
+non-stationary bandits (modeled via linear dynamical systems)
+with complex (stateless and context-dependent) nonlinear reward functions,
+subject to non-Gaussian stochastic innovations.
+
+We model non-stationary, stochastic MABs in a state-space framework,
+where for a given reward distribution $p_{a}(Y|x,\theta)$,
+and parameters that evolve in-time via a transition distribution $p(\theta_{t}|\theta_{t-1})$,
+we write
+\begin{equation}
+\begin{cases}
+\theta_{t}^* \sim p(\theta_{t}^*|\theta_{t-1}^*) \; ,\\
+Y_{t}\sim p_{a_t}(Y|x_t,\theta_{t}^*) \; ,
+\end{cases}
+\quad t=1, \cdots, T,
+\label{eq:dynamic_mab}
+\end{equation}
+where we explicitly indicate with $\theta_t^*$ the true yet unknown parameters of the non-stationary multi-armed bandit.
+
+Within this bandit framework, a Bayesian policy must characterize
+the posterior of the unknown parameters $p(\theta_t|\HH_{1:t})$ as in Equation~\eqref{eq:mab_param_posterior},
+in which the time-varying dynamics of the underlying transition distribution are incorporated.
+
+The posterior of interest given observed reward $y_t$
+can be written as
+\begin{equation}
+p(\theta_{t}|\HH_{1:t}) \propto p_{a_t}(y_t|x_t, \theta_{t}) p(\theta_{t} |\HH_{1:t-1}) \; ,
+\label{eq:dynamic_posterior}
+\end{equation}
+where $p(\theta_t| \HH_{1:t-1}) = \int_{\theta_{t-1}} p(\theta_{t} | \theta_{t-1}) p(\theta_{t-1}|\HH_{1:t-1}) \dd{\theta_{t-1}}$.
+%
+Recall that the parameter predictive distribution $p(\theta_t| \HH_{1:t-1})$ and parameter posterior $p(\theta_{t}|\HH_{1:t})$ in Equation~\eqref{eq:dynamic_posterior} 
+have analytical, closed-form recursive solutions only for limited cases.
+
+We adhere to the standard MAB formulation,
+in that each arm of the bandit is described by its own idiosyncratic parameters
+(no information is shared across arms);
+\ie $p_{a}(Y| x_t,\theta_{t}^*)=p_{a}(Y|x_t,\theta_{t,a}^*)$,
+yet we allow for such parameters to evolve independently per-arm in time:
+$p(\theta_{t}^*|\theta_{t-1}^*)=\prod_{a=1}^{|\A|} p(\theta_{t,a}^*|\theta_{t-1,a}^*)$.
+Therefore, the posterior of interest factorizes across arms
+\begin{equation}
+	p(\theta_{t}|\HH_{1:t}) = \prod_{a=1}^{|\A|} p(\theta_{t,a}|\HH_{1:t})\; .
+	\label{eq:dynamic_posterior_factorized}
+\end{equation}
+
+This standard MAB formulation with independent, per-arm parameter dynamics
+enables Bayesian MAB policies to approximate each per-arm parameter posterior separately.
+Given observed reward $y_t$ for played MAB arm $a_t$ at time instant $t$,
+only the parameter posterior of the played arm is updated with this new observation,
+\ie 
+\begin{equation}
+	p(\theta_{t,a_t}|\HH_{1:t}) \propto p_{a_t}(y_t|x_t, \theta_{t,a_t}) p(\theta_{t,a_t} | \theta_{t-1,a_t}) p(\theta_{t-1,a_t}|\HH_{1:t-1}) \; ;
+	\label{eq:dynamic_posterior_factorized_aplayed_updated}
+\end{equation}
+while parameter posteriors of the non-played arms are only updated according to the latent parameter dynamics, \ie
+\begin{equation}
+	p(\theta_{t,a}|\HH_{1:t}) \propto p(\theta_{t,a} | \theta_{t-1,a}) p(\theta_{t-1,a}|\HH_{1:t-1}) \;, \forall a^\prime \neq a_t \;.
+	\label{eq:dynamic_posterior_factorized_updated}
+\end{equation}
+
+We here combine SMC with Bayesian bandit policies ---Thompson sampling and Bayes-UCB, specifically---
+for non-stationary bandits as modeled in Equation~\eqref{eq:dynamic_mab}.
+The challenge is on computing the posteriors in Equations~\eqref{eq:dynamic_posterior}, \eqref{eq:dynamic_posterior_factorized_aplayed_updated} and \eqref{eq:dynamic_posterior_factorized_updated} for a variety of MAB models,
+for which SMC enables us to accommodate 
+($i$) any likelihood function that is computable up to a proportionality constant, and
+($ii$) any time-varying model described by a transition density from which we can draw samples.
+
+We use SMC to compute per-arm parameter posteriors at each bandit round,
+\ie we approximate per-arm filtering densities $p(\theta_{t,a}|\HH_{1:t})$ with SMC-based random measures $p_M(\theta_{t,a}|\HH_{1:t})$, $\forall a$,
+for which there are strong theoretical convergence guarantees~\citep{j-Crisan2002,j-Chopin2004}.
+
+The dimensionality of this estimation problem depends on the size of per-arm parameters,
+and not on the number of bandit arms $|\A|$.
+Consequently, there will be no particle degeneracy due to increased number of arms.
+
+We present in Section~\ref{ssec:sir-policies} and Algorithm~\ref{alg:sir-mab}
+the SMC-based Bayesian MAB framework we devise for nonlinear and non-stationary bandits.
+%For its implementation, 
+%the likelihood function must be computable up to a proportionality constant,
+%and one needs to be able to draw samples from the transition density of the parameter dynamics.
+We describe in Section~\ref{ssec:linear_mixing_dynamics}
+how to draw samples from the transition densities,
+when modeling bandit non-stationarity via the general linear model;
+and in Section~\ref{ssec:mab_reward_models},
+we present examples of
+non-Gaussian and nonlinear (continuous and discrete)
+reward functions of interest in practice.
+Throughout, we avoid assumptions on model parameter knowledge and resort to their Bayesian marginalization.
+
+\subsection{SMC-based Bayesian MAB policies}
+\label{ssec:sir-policies}
+
+We combine SMC with both Thompson sampling and Bayes-UCB policies, 
+by sequentially updating, at each bandit interaction $t$,
+a SMC-based random measure to approximate the time-varying posterior of interest,
+\begin{equation}
+p(\theta_{t,a}|\HH_{1:t})\approx p_M(\theta_{t,a}|\HH_{1:t})=\sum_{m=1}^M w_{t,a}^{(m)} \delta\left(\theta_{t,a}^{(m)}-\theta_{t,a}\right) \;.
+\end{equation}
+Knowledge of $p_M(\theta_{t,a}|\HH_{1:t})$ enables computation
+of any per-arm reward statistic Bayesian MAB policies require.
+
+We present Algorithm~\ref{alg:sir-mab}
+with the sequential Importance Resampling (SIR) method\footnote{
+	We acknowledge that any of the methodological SMC advancements that improve and extend SIR,
+	\eg advanced SMC algorithms~\citep{ip-Merwe2001, j-Andrieu2010}
+	or alternative resampling mechanisms~\citep{j-Li2015},
+	are readily applicable to the proposed SMC-based bandit framework,
+	and are likely to have a positive impact on the corresponding SMC-based MAB policies' performance.
+} 
+as introduced by \citet{j-Gordon1993}, 
+where:
+\begin{itemize}
+	\item The SMC proposal distribution $q(\cdot)$ at each bandit interaction $t$ obeys the assumed parameter dynamics:
+		$\theta_{t,a}^{(m)} \sim p(\theta_{t,a}|\theta_{t-1,a}), \ \forall m$ ---Step (9.b) in Algorithm~\ref{alg:sir-mab};
+	\item SMC weights are updated based on the likelihood of the observed rewards:
+		$w_{t,a}^{(m)} \propto p_a(y_t|x_t,\theta_{t,a}^{(m)})$ ---Step (9.c) in Algorithm~\ref{alg:sir-mab}; and
+	\item The SMC random measure is resampled at every time instant ---Step (9.a).
+\end{itemize}
+
+Independently of which SMC technique is used to compute the posterior random measure $p_M(\theta_{t,a}|\HH_{1:t})$,
+the fundamental operation in the proposed SMC-based MAB Algorithm~\ref{alg:sir-mab} 
+is to sequentially update the random measure $p_M(\theta_{t,a}|\HH_{1:t})$
+to approximate the true per-arm posterior $p(\theta_{t,a}|\HH_{1:t})$
+over bandit interactions.
+
+This SMC-based random measure is key,
+along with transition density $p(\theta_{t,a}|\theta_{t-1,a})$,
+to sequentially propagate parameter posteriors per-arm,
+and to estimate their sufficient statistics for any Bayesian bandit policy.
+More precisely:
+\begin{itemize}
+	\item In Step 5 of Algorithm~\ref{alg:sir-mab},
+	we estimate the predictive posterior of per-arm parameters,
+	as a mixture of the transition densities conditioned on previous samples from $p_M(\theta_{t,a}|\HH_{1:t})$, 
+	\begin{equation}
+		p_M(\theta_{t+1,a}|\HH_{1:t}) = \sum_{m_{t,a}=1}^{M} w_{t,a}^{(m_{t,a})} p(\theta_{t+1,a}|\theta_{t,a}^{(m_{t,a})}) \; , \; m_{t,a}=1,\cdots, M, \; \forall a\in \A \; .
+		\label{eq:smc_parameter_predictive_posterior}
+	\end{equation}
+	
+	\item In Step 9 of Algorithm~\ref{alg:sir-mab},
+	we propagate forward the sequential random measure $p_M(\theta_{t,a}|\HH_{1:t})$
+	by drawing new samples from the transition density, conditioned on \textit{resampled} particles, \ie
+	\begin{equation}
+		\theta_{t+1,a}^{(m_{t+1,a})} \sim p(\theta_{t+1,a}|\overline{\theta}_{t,a}^{(m_{t+1,a})}) \; , \; m_{t+1,a}=1,\cdots, M, \; \forall a\in \A \; .
+	\end{equation}
+\end{itemize}
+In both cases, one draws with replacement according to the importance weights in $p_M(\theta_{t,a}|\HH_{1:t})$,
+\ie from a categorical distribution with per-sample probabilities $w_{t,a}^{(m)}$: $m_{t,a}^\prime \sim \Cat{w_{t,a}^{(m)}}$.
+
+We now describe in detail how to use the SMC-based posterior random measure $p_M(\theta_{t+1,a}|\HH_{1:t})$ for both Thompson sampling and Bayes-UCB policies:
+\ie which are the specific instructions to execute in steps 5 and 7 of Algorithm~\ref{alg:sir-mab}.
+\begin{itemize}
+	\item \textbf{SMC-based Thompson Sampling:}
+	TS operates by drawing a sample parameter $\theta_{t+1}^{(s)}$ from its updated posterior $p(\theta_{t+1}|\HH_{1:t})$,
+	and picking the optimal arm for such sample, \ie
+	\begin{equation}
+		a_{t+1}=\argmax_{a^\prime \in \A} \mu_{t+1,a^\prime}\left(x_{t+1},\theta_{t+1,a^\prime}^{(s)}\right) \; .
+		\label{eq:mc_expected_reward}
+	\end{equation}
+	We use the SMC random measure $p_M(\theta_t|\HH_{1:t})$,
+	and propagate it using the transition density $p(\theta_{t+1,a}|\theta_{t,a})$,
+	to draw samples from the parameter posterior predictive distribution:
+	\ie $\theta_{t+1}^{(s)}\sim p_M(\theta_{t+1}|\HH_{1:t})$
+	in Equation~\eqref{eq:smc_parameter_predictive_posterior}.
+	This SMC-based random measure provides an accurate approximation to the true posterior density with high probability.
+
+	\vspace*{1ex}	
+	\item \textbf{SMC-based Bayes-UCB:}
+	We extend Bayes-UCB to reward models where the quantile functions are not analytically tractable,
+	by leveraging the SMC-based parameter predictive posterior random measure  $p_M(\theta_{t+1}|\HH_{1:t})$.
+
+	We compute the quantile function of interest by first 
+	evaluating the expected reward at each round $t$ based on the available posterior samples,
+	\ie $\mu_{t+1,a}^{(m)}\left(x_{t+1},\theta_{t+1,a}^{(m)}\right)$, $m=1,\cdots,M$;
+	and compute
+	$
+	\Prob{\mu_{t+1,a}>q_{t+1,a}(\alpha_{t+1})} = \alpha_{t+1}
+	$
+	via
+	\begin{equation}
+		q_{t+1,a}(\alpha_{t+1}):=\max \left\{\mu \; \left|\sum_{m|\mu_{t+1,a}^m>\mu} w_{t,a}^m\ge\alpha_{t+1} \right. \right\} \; .
+		\label{eq:mc_quantile_value}
+	\end{equation}
+	The convergence of quantile estimators generated by SMC methods has been explicitly proved in~\citep{j-Maiz2012}.
+\end{itemize}
+
+Random measure $p_M(\theta_{t+1,a}|\HH_{1:t})$ in Equation~\eqref{eq:smc_parameter_predictive_posterior} 
+enables computation of the statistics Bayesian MAB policies require,
+extending their applicability from stationary to time-evolving bandits.
+The exposition that follows addresses dynamic bandits,
+and we illustrate how to process classic, stationary bandits within the proposed framework in Appendix~\ref{asec:static_bandits}.
+
+%Algorithm: MAB-SIR
+\begin{algorithm}
+	\caption{SMC-based Bayesian MAB policies}
+	\label{alg:sir-mab}
+	\begin{algorithmic}[1]
+		\REQUIRE $\A$, $p(\theta_a)$, $p(\theta_{t,a}|\theta_{t-1,a})$, $p_a(Y|x,\theta)$, $\forall a \in \A$.
+		\REQUIRE Number of SMC samples $M$ (for UCB we also require $\alpha_t$)
+		\STATE Draw initial samples from the parameter prior
+			\vspace*{-1ex}
+		\begin{equation}
+			\overline{\theta}_{0,a}^{(m_{0,a})} \sim p(\theta_a), \quad \text{ and } \quad w_{0,a}^{^{(m_{0,a})}}=\frac{1}{M} \;, \; m_{0,a}=1,\cdots, M, \; \forall a \in \A \;.
+			\nonumber
+			\vspace*{-4ex}
+		\end{equation}
+		\FOR{$t=0, \cdots, T-1$}
+		\STATE Receive context $x_{t+1}$
+		\FOR{$a \in \A$}
+		\STATE Estimate sufficient statistics of the MAB policy for all arms, \\
+		given $\{w_{t,a}^{(m_{t,a})} \}$ and $\{\theta_{t,a}^{(m_{t,a})}\}$, $\forall m_{t,a}$, $\forall a\in\A$.\\
+		
+		\vspace*{1ex}
+		\quad For \textit{Thompson sampling:}\\
+		\qquad Draw a sample $s \sim \Cat{w_{t,a}^{(m_{t,a})}}$, \\
+		\qquad Propagate the sample parameter $\theta_{t+1,a}^{(s)}\sim p\left(\theta_{t+1,a}|\theta_{t,a}^{(s)}\right)$, \\
+		\qquad Set $\mu_{t+1,a}\left(x_{t+1}, \theta_{t+1,a}^{(s)}\right)=\eValue{}{Y|a,x_{t+1}, \theta_{t+1,a}^{(s)}}$ .\\
+		
+		\vspace*{1ex}
+		\quad For\textit{Bayes-UCB:}\\
+		\qquad Draw $M$ candidate samples $m_{a}^\prime \sim \Cat{w_{t,a}^{(m_{t,a})}}$,\\
+		\qquad Propagate sample parameters $\theta_{t+1,a}^{(m_{a}^\prime)} \sim p\left(\theta_{t+1,a}|\theta_{t,a}^{(m_{a}^\prime)}\right)$, \\
+		\qquad Set $\mu_{t+1,a}\left(x_{t+1}, \theta_{t+1,a}^{(m_{a}^\prime)}\right)=\eValue{}{Y|a,x_{t+1}, \theta_{t+1,a}^{(m_{a}^\prime)}}$,\\
+		\qquad Estimate quantile $q_{t+1,a}(\alpha_{t+1})$ as in Equation~\eqref{eq:mc_quantile_value}.
+		
+		\vspace*{1ex}
+		\ENDFOR
+		\STATE Decide next action $a_{t+1}$ to play\\
+		\vspace*{1ex}
+		\quad For \textit{Thompson sampling:} \hspace*{0.6cm} $a_{t+1}=\argmax_{a^\prime \in \A} \mu_{t+1,a^\prime}\left(x_{t+1}, \theta_{t+1,a^\prime}^{(s)}\right)$ \\
+		\vspace*{1ex}
+		\quad For\textit{Bayes-UCB:} \hspace*{1.8cm} $a_{t+1}=\argmax_{a^\prime \in \A}q_{t+1,a^\prime}(\alpha_{t+1})$
+		
+		\vspace*{1ex}
+		\STATE Observe reward $y_{t+1}$ for played arm
+		
+		\vspace*{1ex}
+		\STATE Update the posterior SMC random measure $p_M(\theta_{t,a}|\HH_{1:t})$ for all arms\\
+		
+		\begin{enumerate}[(a)]
+			\vspace*{-1ex}
+			\item Resample $m_{t+1,a}=1,\cdots, M$ parameters $\overline{\theta}_{t,a}^{(m_{t+1,a})}=\theta_{t,a}^{(m_{t,a}^\prime)}$ per arm $a\in \A$,
+			where $m_{t,a}^\prime$ is drawn with replacement according to the importance weights $w_{t,a}^{(m_{t,a})}$.
+
+			\vspace*{-1ex}
+			\item Propagate resampled parameters by drawing from the transition density
+			\vspace*{-1ex}
+			\begin{equation}		
+				\theta_{t+1,a}^{(m_{t+1,a})} \sim p\left(\theta_{t+1,a} \middle| \overline{\theta}_{t,a}^{(m_{t+1,a})}\right) \; , \; m_{t+1,a}=1,\cdots, M, \; \forall a \in \A \; .
+				\label{eq:sir-mab-propagate}
+			\vspace*{-2ex}
+			\end{equation}
+			
+			\vspace*{-1ex}
+			\item Weight samples of the played arm $a_{t+1}$ based on the likelihood of observed $y_{t+1}$
+			\vspace*{-1ex}
+			\begin{equation}
+				\widetilde{w}_{t+1,a_{t+1}}^{\left(m_{t+1,a_{t+1}}\right)} \propto p_{a_{t+1}}\left(y_{t+1} \middle|  x_{t+1},\theta_{t+1,a_{t+1}}^{\left(m_{t+1,a_{t+1}}\right)}\right) \; ,
+				\label{eq:sir-mab-weights}
+			\vspace*{-2ex}
+			\end{equation}
+			and normalize the weights
+			\vspace*{-1ex}
+			\begin{equation}
+				w_{t+1,a_{t+1}}^{\left(m_{t+1,a_{t+1}}\right)}=\frac{\widetilde{w}_{t+1,a_{t+1}}^{\left(m_{t+1,a_{t+1}}\right)}}{\sum_{m_{t+1,a_{t+1}}=1}^M\widetilde{w}_{t+1,a_{t+1}}^{\left(m_{t+1,a_{t+1}}\right)}} \; , \; m_{t+1,a}=1,\cdots, M.
+				\label{eq:sir-mab-weights-norm}
+			\vspace*{-2ex}
+			\end{equation}
+		\end{enumerate}
+		\vspace*{-2ex}
+		\ENDFOR
+	\end{algorithmic}
+\end{algorithm}
+
+\subsection{Non-stationary MABs}
+\label{ssec:linear_mixing_dynamics}
+\input{linear_mixing_dynamics}
+
+\subsection{MAB reward models}
+\label{ssec:mab_reward_models}
+\input{mab_reward_models}
+

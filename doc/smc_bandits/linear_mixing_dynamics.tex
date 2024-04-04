@@ -1,0 +1,67 @@
+% !TEX root = smc_bandits.tex
+
+The dynamic linear model is a flexible and widely used framework to characterize time-evolving systems~\citep{b-Whittle1951, b-Box1976, b-Brockwell1991, b-Durbin2001, b-Shumway2010, b-Durbin2012}.
+Here, we model the latent parameters of the bandit $\theta \in \Real^{d_{\Theta}}$ to evolve over time according to
+\begin{equation}
+\theta_{t,a}=L_a \theta_{t-1,a}+\epsilon_a \;, \qquad \epsilon_a\sim\N{\epsilon_a|0, \Sigma_a} \; ,
+\label{eq:linear_mixing_dynamics}
+\end{equation}
+with parameters $L_a \in \Real^{d_{\Theta_a} \times d_{\Theta_a}}$ and $\Sigma_a \in \Real^{d_{\Theta_a} \times d_{\Theta_a}}$
+---recall that we specify distinct transition densities per-arm.
+
+With \emph{known parameters} $L_a$ and $\Sigma_a$, the transition distribution $p(\theta_{t,a}|\theta_{t-1,a})$
+is Gaussian with closed-form updates,
+\ie $\theta_{t,a}\sim \N{\theta_{t,a}|L_a \theta_{t-1,a}, \Sigma_a} $.
+
+For the more interesting case of \emph{unknown parameters},
+we marginalize parameters $L_a$ and $\Sigma_a$ of the transition distributions
+utilized by the proposed SMC-based Bayesian policies, \ie
+we Rao-Blackwellize\footnote{
+	Rao-Blackwellization is known to help reduce the degeneracy and variance of SMC estimates~\citep{ip-Doucet2000,ib-Djuric2010}.
+} them.
+
+The marginalized transition density is a multivariate t-distribution~\citep{j-Geisser1963,j-Tiao1964,j-Geisser1965,j-Urteaga2016,j-Urteaga2016a}:
+\begin{align}
+\theta_{t,a} \sim \T{\theta_{t,a}|\nu_{t,a}, m_{t,a}, R_{t,a}} \;, \text{ with } \quad
+\begin{cases}
+\nu_{t,a}=\nu_{0,a}+t-d \; ,\\
+m_{t,a}=L_{t-1,a} \theta_{t-1,a} \; , \\
+R_{t,a} = \frac{V_{t-1,a}}{\nu_{t,a}\left(1-\theta_{t-1,a}^\top(U_{t,a} U_{t,a}^\top)^{-1}\theta_{t-1,a}\right)} \; ,\\
+\end{cases} 
+\label{eqn:dynamics_rb} \\
+\nonumber \\
+\text{where } \begin{cases}
+\Theta_{t_0:t_1,a}=[\theta_{t_0,a} \theta_{t_0+1,a} \cdots \theta_{t_1-1,a} \theta_{t_1,a}] \in \Real^{d\times (t_1-t_0)} \; , \\
+B_{t-1,a} = \left(\Theta_{0:t-2,a}\Theta_{0:t-2,a}^\top + B_{0,a}^{-1} \right)^{-1} \; ,\\
+L_{t-1,a} = \left(\Theta_{1:t-1,a}\Theta_{0:t-2,a}^\top + L_{0,a}B_{0,a}^{-1}\right) B_{t-1,a} \; ,\\
+V_{t-1,a}= \left(\Theta_{1:t-1,a}-L_{t-1,a} \Theta_{0:t-2,a}\right)\left(\Theta_{1:t-1,a}-L_{t-1,a} \Theta_{0:t-2,a}\right)^\top \\
+\qquad \qquad + \left(L_{t-1,a}-L_{0,a}\right) B_{0,a}^{-1} \left(L_{t-1,a}-L_{0,a}\right)^\top + V_{0,a} \; ,\\
+U_{t,a} U_{t,a}^\top = \left(\theta_{t-1,a}\theta_{t-1,a}^\top+B_{t-1,a}^{-1}\right) \; .\\
+\end{cases}
+\label{eqn:dynamics_rb_aux}
+\end{align}
+Each distribution above holds separately for each arm $a$, and subscript $_{a,0}$ indicates assumed prior parameters for arm $a$.
+
+These transition distributions are used when propagating per-arm parameter densities in Steps 5 and 9 of Algorithm~\ref{alg:sir-mab}.
+They are fundamental for the accuracy of the sequential, random measure-based approximation to the posterior,
+and the downstream performance of the proposed SMC-based MAB policies.
+
+Caution must be exercised when using SMC to approximate the dynamic bandit model's posteriors.
+%On the one hand, certain parameter constraints might be necessary for the model to be wide-sense stationary~\citep{b-Box1976, b-Shumway2010, b-Durbin2012}.
+Notably, the impact of non-Markovian transition distributions in SMC performance must be taken into consideration:
+the sufficient statistics in Equations~\eqref{eqn:dynamics_rb}-\eqref{eqn:dynamics_rb_aux} depend on the full history of the model dynamics.
+Here, we use general linear models,
+for which it can be shown that, if stationarity conditions are met,
+the autocovariance function decays quickly,
+\ie the dependence of general linear models on past samples decays exponentially~\citep{j-Urteaga2016,j-Urteaga2016a}.
+
+When exponential forgetting holds in the latent space
+---\ie the dependence on past samples decays exponentially, and is negligible after a certain lag---
+one can establish uniform-in-time convergence of SMC methods for functions that depend only on recent states, see~\citep{j-Kantas2015} and references therein.
+
+More broadly, one can establish uniform-in-time convergence for path functionals that depend only on recent states,
+as the Monte Carlo error of $p_M(\theta_{t-\tau:t}|\HH_{1:t})$ with respect to $p(\theta_{t-\tau:t}|\HH_{1:t})$ is uniformly bounded over time.
+This quick forgetting property is fundamental
+for the successful performance of SMC methods for inference of linear dynamical states in practice~\citep{j-Urteaga2017b,j-Urteaga2016,j-Urteaga2016a}.
+
+Nevertheless, we acknowledge that any improved SMC solution that mitigates path-degeneracy issues can only be beneficial for the performance of the proposed SMC-based policies.

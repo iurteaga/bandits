@@ -1,0 +1,143 @@
+% !TEX root = smc_bandits.tex
+
+Algorithm~\ref{alg:sir-mab} is described in terms of a generic reward likelihood function $p_a(Y|x_t,\theta_{t,a})$
+that must be computable up to a proportionality constant.
+We now introduce reward functions that are applicable in many MAB use-cases,
+where the time subscript $_t$ has been suppressed for clarity of presentation,
+and subscript $_0$ indicates assumed prior parameters.
+
+\subsubsection{Contextual, categorical rewards}
+\label{sssec:categorical_softmax_rewards}
+
+For MAB problems where observed rewards are discrete,
+\ie $Y=c$ for $c\in\{1,\cdots,C\}$,
+and contextual information is available,
+the softmax function is a natural reward density model.
+In general, categorical variables assign probabilities to an unordered set of outcomes ---not necessarily numeric.
+In this work,
+we refer to categorical rewards where,
+for each categorical outcome $c\in\Natural$,
+there is a numeric reward $y=c$ associated with it.
+
+Given a $d$-dimensional context vector $x\in\Real^{d}$,
+and per-arm parameters $\theta_{a,c} \in \Real^{d}$ for each category $c\in\{1,\cdots,C\}$,
+the contextual softmax reward model is
+\begin{equation}
+p_a(Y=c|x,\theta_a)=\frac{e^{(x^\top\theta_{a,c})}}{\sum_{c'=1}^C e^{(x^\top\theta_{a,c'})} } \; ,
+%p_a(y=c|x,\theta_a)=\exp{(x^\top\theta_{a,c})}/\sum_{c'=1}^C\exp{(x^\top\theta_{a,c'})} \; .
+\label{eq:softmax_rewards}
+\end{equation}
+where we denote with $\theta_a=\{\theta_{a,1}, \cdots, \theta_{a,C}\}$ the set of per-category parameters $\theta_{a,c}$ for arm $a$.
+For this reward distribution,
+the posterior of the parameters can not be computed in closed form,
+and neither, the quantile function of the expected rewards $\mu_{t,a}=y_t\cdot(x_t^\top\theta_{t,a})$.
+
+When returns are binary, \ie $Y=\{0,1\}$ (success or failure of an action),
+but dependent on a $d$-dimensional context vector $x\in\Real^{d}$,
+the softmax function reduces to the logistic reward model
+\begin{equation}
+p_a(Y|x,\theta)=\frac{e^{Y\cdot(x^\top\theta_a) }}{1+e^{(x^\top\theta_a)}} \; ,
+\label{eq:logistic_rewards}
+\end{equation}
+with per-arm parameters $\theta_a \in \Real^{d}$ of same dimensionality $d$ as the context $x$.
+
+The theoretical study of UCB and TS-based algorithms for logistic rewards is an active research area~\citep{ip-Dong2019,ip-Faury2020},
+which we here extend to the discrete-categorical setting.
+%
+We accommodate discrete-categorical MAB problems by implementing Algorithm~\ref{alg:sir-mab}
+with likelihoods as in Equations~\eqref{eq:softmax_rewards} or~\eqref{eq:logistic_rewards}.
+Namely, we compute $p_M(\theta_{t,a}|\HH_{1:t})$ 
+for both stationary and non-stationary discrete-categorical bandits,
+by updating the weights of the posterior SMC random measure in Step 9-c.
+To the best of our knowledge,
+no existing work addresses non-stationary, discrete-categorical bandits.
+
+\subsubsection{Contextual, linear Gaussian rewards}
+\label{sssec:linear_gaussian_rewards}
+
+For bandits with continuous rewards, Gaussian distributions are typically used,
+where contextual dependencies can easily be included.
+The contextual linear Gaussian reward model is well studied in the bandit literature~\citep{ic-Abbasi-Yadkori2011,ip-Chu2011,ip-Agrawal2013a},
+where the expected reward of each arm is modeled as a linear combination of a $d$-dimensional context vector $x\in\Real^{d}$,
+and the idiosyncratic parameters of the arm $w_a\in\Real^{d}$; \ie
+\begin{equation}
+\begin{split}
+p_a(Y|x,\theta)&=\N{Y \middle|x^\top w_a, \sigma_a^2} =\frac{1}{\sqrt{2\pi\sigma_a^2}}e^{-\frac{(Y-x^\top w_a)^2}{2\sigma_a^2}} \; .
+\end{split}
+\end{equation}
+We denote with $\theta\equiv\{w, \sigma\}$ the set of all parameters of the reward distribution,
+and consider the normal inverse-gamma conjugate prior distribution for these, 
+\begin{equation}
+\begin{split}
+p(w_a, \sigma_a^2|u_{0,a}, V_{0,a}, \alpha_{0,a}, \beta_{0,a})
+%&= \NIG{w_a, \sigma_a^2|u_{0,a}, V_{0,a},\alpha_{0,a}, \beta_{0,a}} \\
+& = \N{w_a|u_{0,a}, \sigma_a^2 V_{0,a}} \cdot \IG{\sigma_a^2|\alpha_{0,a}, \beta_{0,a}} \; .\\
+%& = \frac{e^{-\frac{1}{2}(w_a-u_{0,a})^\top(\sigma_a^2 V_{0,a})^{-1}(w_a-u_{0,a})}}{(2\pi)^{1/2}\sigma_a \mydet{V_{0,a}}^{-1/2}} \cdot \frac{\beta_0^{\alpha_0}}{\Gamma\left(\alpha_0\right)} (\sigma_a^2)^{-\alpha_0-1}e^{-\frac{\beta_0}{(\sigma_a^2)}} \; .
+\end{split}
+\end{equation}
+
+After observing actions $a_{1:t}$ and rewards $y_{1:t}$, the parameter posterior for each arm 
+\begin{equation}
+\begin{split}
+p(w_a, \sigma_a^2|a_{1:t},y_{1:t},u_{0,a}, V_{0,a},\alpha_{0,a}, \beta_{0,a}) &= p\left(w_a, \sigma_a^2|u_{t,a}, V_{t,a},\alpha_{t,a}, \beta_{t,a}\right) \\
+%&=\NIG{w_a, \sigma_a^2|u_{t,a}, V_{t,a},\alpha_{t,a}, \beta_{t,a}} \; ,
+\end{split}
+\end{equation}
+follows an updated normal inverse-gamma distribution with sequentially updated hyperparameters
+\begin{equation}
+\begin{cases}
+V_{t,a}^{-1} = V_{t-1,a}^{-1} + x_t x_t^\top \cdot \mathds{1}[a_t=a] \; ,\\
+u_{t,a}= V_{t,a} \left( V_{t-1,a}^{-1} u_{t-1,a} + x_t y_{t}\cdot \mathds{1}[a_t=a]\right) \; ,\\
+\alpha_{t,a}=\alpha_{t-1,a} + \frac{\mathds{1}[a_t=a]}{2} \; ,\\
+\beta_{t,a}=\beta_{t-1,a} + \frac{\mathds{1}[a_t=a](y_{t_a}-x_t^\top u_{t-1,a})^2}{2\left(1+x_t^\top V_{t-1,a} x_t\right)} \; ,
+\end{cases}
+\end{equation}
+or, alternatively, batch updates of the form
+\begin{equation}
+\begin{cases}
+V_{t,a}^{-1}= V_{0,a}^{-1}+x_{{1:t}|t_a} x_{{1:t}|t_a}^\top \; ,\\
+u_{t,a}=V_{t,a}\left(V_{0,a}^{-1}u_{0,a}+x_{{1:t}|t_a} y_{{1:t}|t_a}\right) \; ,\\
+\alpha_{t,a}=\alpha_{0,a} + \frac{|t_a|}{2} \; ,\\
+\beta_{t,a}=\beta_{0,a} + \frac{\left(y_{{1:t}|t_a}^\top y_{{1:t}|t_a} + u_{0,a}^\top V_{0,a}^{-1}u_{0,a} - u_{t,a}^\top V_{t,a}^{-1}u_{t,a} \right)}{2} \; ,
+\end{cases}
+\end{equation}
+where $t_a=\{t|a_t=a\}$ indicates the set of time instances when arm $a$ is played.
+
+With these, we can compute the Bayesian expected reward of each arm,
+\begin{equation}
+p(\mu_{a}|x, \sigma_a^2, u_{t,a}, V_{t,a}) = \N{\mu_{a} \middle|x^\top u_{t,a}, \; \sigma_a^2 \cdot x^\top V_{t,a} x} \; ,
+\label{eq:gaussian_posterior_mean}
+\end{equation}
+and the quantile function for such distribution
+\begin{equation}
+q_{t+1,a}(\alpha_{t+1})=Q\left(1-\alpha_{t+1}, \N{\mu_{a} \middle|x^\top u_{t,a}, \; \sigma_a^2 \cdot x^\top V_{t,a} x}\right) \;.
+\label{eq:gaussian_posterior_quantile}
+\end{equation}
+
+The reward variance $\sigma^2_a$ is unknown in practice,
+so we marginalize it and obtain
+\begin{equation}
+\begin{split}
+p(\mu_{a}|x, u_{t,a}, V_{t,a}) = \T{\mu_{a} \middle|2\alpha_{t,a}, x^\top u_{t,a}, \; \frac{\beta_{t,a}}{\alpha_{t,a}} \cdot x^\top V_{t,a} x} \;, 
+%& \qquad = \frac{\Gamma\left(\frac{2\alpha_{t,a}+1}{2}\right)}{\Gamma\left(\frac{2\alpha_{t,a}}{2}\right)\sqrt{\pi 2\alpha_{t,a} \frac{\beta_{t,a}}{\alpha_{t,a}} x^\top V_{t,a} x}} \cdot \left(1+\frac{1}{(2\alpha_{t,a})}\left(\frac{(\mu_a-x^\top u_{t,a})^2}{\frac{\beta_{t,a}}{\alpha_{t,a}} \cdot x^\top V_{t,a} x}\right)\right)^{-\frac{2\alpha_{t,a}+1}{2}} \; .
+\end{split}
+\label{eq:t_posterior_mean}
+\end{equation}
+which leads to quantile function computations based on a Student's t-distribution
+\begin{equation}
+q_{t+1,a}(\alpha_{t+1})=Q\left(1-\alpha_{t+1}, \T{\mu_{a} \middle| 2\alpha_{t,a}, x^\top u_{t,a}, \; \frac{\beta_{t,a}}{\alpha_{t,a}} \cdot x^\top V_{t,a} x}\right) \;.
+\label{eq:t_posterior_quantile}
+\end{equation}
+
+Equations~\eqref{eq:gaussian_posterior_mean} and~\eqref{eq:gaussian_posterior_quantile}
+are needed in Step 5 when implementing TS or Bayes-UCB policies for the known $\sigma_a^2$ case;
+while Equations~\eqref{eq:t_posterior_mean} and~\eqref{eq:t_posterior_quantile} are used for the unknown $\sigma_a^2$ case.
+Note that one can use the above results for Gaussian bandits with no context, by replacing $x=I$ and obtaining $\mu_{a}=u_{t,a}$.
+
+When these equations are combined
+with the Rao-Blackwellized transition densities derived for the dynamic model in Section~\ref{ssec:linear_mixing_dynamics},
+the proposed SMC-based MAB policies can be applied to non-stationary, linear Gaussian bandit problems with minimal assumptions:
+\ie only the functional form of the transition and reward functions is known.
+
+There are no competing MAB algorithms
+for non-stationary bandit problems where no parameter knowledge is assumed.

@@ -1,0 +1,233 @@
+% !TEX root = smc_bandits.tex
+
+The MAB crystallizes the fundamental trade-off between exploration and exploitation in sequential decision making.
+It formulates the problem of maximizing rewards observed from sequentially chosen actions $a\in\A$
+---named \textit{arms} in the bandit literature---
+when interacting with an uncertain environment.
+%
+The reward generating process is stochastic,
+often parameterized with $\theta \in \Theta$
+%\footnote{
+%	We capitalize random variables, and denote their realizations in lower-case.
+%}
+to capture the intrinsic properties of each arm.
+It can potentially depend on context $x\in \X$; \eg a common choice is $\X=\Real^{d_X}$.
+We use $p_{a}(\cdot |x,\theta)$ to indicate
+per-arm reward distributions ---one for each of the $|\A|$ possible arms---
+where subscript $_a$ indicates the conditional reward distribution for each arm $a$.
+
+At each bandit interaction $t$, reward $y_t$ is observed for the played arm $a_t\in\A$ only,
+which is independently and identically drawn from its context-conditional distribution
+\begin{equation}
+Y_t\sim p_{a}(Y|x_t,\theta_{t,a}^*) \;,
+\end{equation}
+parameterized by true $\theta_{t,a}^* \in \Theta$.
+We use $Y_t$ for the stochastic reward variable with density $p_{a}(Y|x_t,\theta_{t,a}^*)$,
+and denote with $y_t$ its realization at time $t$.
+Recall that we accommodate time-varying context and parameters via the subscript $_t$ in both.
+
+We denote with $\theta_t^*$ the union of all, per-arm, parameters at time $t$,
+$\theta_t^* \equiv \left(\theta_{t,0}^*, \cdots, \theta_{t,|\A|-1}^* \right)$,
+and with $\theta_{1:T}^*\equiv \left( \theta_{1}^*, \cdots, \theta_{T}^* \right)$,
+the union of parameters over bandit interactions or time $t=1,\cdots,T$.
+%
+The above stochastic MAB formulation covers stationary bandits
+(if parameters are constant over time, \ie $\theta_{t,a}^*=\theta_a^*, \; \forall t$)
+and non-contextual bandits, by fixing the context to a constant value $x_t=x, \forall t$.
+
+With knowledge of the true bandit model,
+\ie the $\theta_t^* \in \Theta$
+that parameterizes the reward distribution of the environment,
+the optimal action to take is
+\begin{equation}
+a_t^* = \argmax_{a^\prime \in \A} \mu_{t,a^\prime}(x_t,\theta_t^*) \;,
+\end{equation}
+where $\mu_{t,a}(x_t,\theta_t^*)=\eValue{}{Y|a,x_t,\theta_t^*}$ is each arm's conditional reward expectation,
+given context $x_t$ and true parameters $\theta_t^*$, at time $t$.
+
+The challenge in MABs is the lack of knowledge about the reward-generating distribution,
+\ie uncertainty about $\theta_t^*$ induces uncertainty about the true optimal action $a_t^*$.
+Namely, the agent needs to simultaneously learn properties of the reward distribution,
+and sequentially decide which action to take next.
+MAB policies choose the next arm to play,
+with the goal of maximizing attained rewards, based upon the history observed so far.
+
+We use $\pi(A)$ to denote a multi-armed bandit policy,
+which is in general stochastic ---$A$ is a random variable--- on its choices of arms,
+and is dependent on previous history:
+$\pi(A)=\myProb{}{A=a | \HH_{1:t}}, \forall a\in\A$.
+Previous history $\HH_{1:t}$ contains the set of contexts, played arms, and observed rewards up to time $t$,
+denoted as $\HH_{1:t}=\left\{x_{1:t}, a_{1:t}, y_{1:t}\right\}$,
+with $x_{1:t} \equiv \left(x_1, \cdots , x_t\right)$,
+$a_{1:t} \equiv \left(a_1, \cdots , a_t\right)$
+and $y_{1:t} \equiv \left(y_{1,a_1}, \cdots , y_{t,a_t}\right)$.
+
+Given history $\HH_{1:t}$, a MAB policy $\pi(A|\HH_{1:t})$ aims at maximizing its cumulative rewards,
+or equivalently, 
+minimizing its cumulative regret
+(the loss incurred due to not knowing the best arm $a_t^*$ at each time $t$),
+\ie $R_T=\sum_{t=1}^T y_{t,a^*_t}-y_{t,a_t}$,
+where $a_t$ denotes the realization of the policy $\pi(A|\HH_{1:t})$
+---the arm picked by the policy--- at time $t$.
+%
+Due to the stochastic nature of the problem,
+we study the \emph{expected} cumulative regret at time horizon $T$ (not necessarily known a priori)
+\begin{equation}
+R_T=\eValue{}{\sum_{t=1}^T Y_{t,a^*_t}-Y_{t,A_t} } \; ,
+\label{eq:mab_cumulative_regret}
+\end{equation}
+where the expectation is taken over the randomness in the outcomes $Y$, and the arm selection policy $A_t \sim \pi(A)$
+for the frequentist regret.
+In the Bayesian setting, the uncertainty over the true model parameters $\theta^*$ is also marginalized.
+
+\subsubsection{MAB algorithms}
+\label{sssec:mab_algos}
+Over the years, many MAB policies have been proposed to overcome the exploration-exploitation tradeoff~\citep{b-Lattimore2020}.
+$\epsilon$-greedy is a popular applied framework due to its simplicity
+(\ie to be greedy with probability $1-\epsilon$,
+and to play the arm with best averaged rewards so far,
+otherwise to randomly pick any arm),
+while retaining often good performance \citep{j-Auer2002}.
+A more formal treatment was provided by
+\citet{j-Gittins1979},
+who devised the optimal strategy for certain bandit cases,
+by considering geometrically discounted future rewards.
+Since the exact computation of the Gittins index is complicated,
+approximations have also been developed~\citep{j-Brezzi2002}.
+
+\citet{j-Lai1985} introduced a new class of algorithms,
+based on the upper confidence bound (UCB) of the expected reward of each arm,
+for which strong theoretical guarantees have been proven~\citep{j-Lai1987},
+and many extensions proposed~\citep{ip-Garivier2011,ip-Garivier2011a}.
+
+Bayes-UCB \citep{ip-Kaufmann2012} is a Bayesian approach to UCB algorithms,
+where quantiles are used as proxies for upper confidence bounds.
+\citet{ip-Kaufmann2012} have proven the asymptotic optimality of Bayes-UCB's finite-time regret for the Bernoulli case,
+and argued that it provides an unifying framework for several variants of the UCB algorithm.
+However, its application is limited to reward models where the quantile functions are analytically tractable.
+
+Thompson sampling (TS)~\citep{j-Thompson1935} is an alternative MAB policy that has been popularized in practice, and studied theoretically by many.
+TS is a probability matching algorithm that randomly selects an action to play according to the probability of it being optimal~\citep{j-Russo2018}.
+It has been empirically proven to perform satisfactorily, 
+and to enjoy provable optimality properties,
+both for problems with and without context \citep{ip-Agrawal2012,ip-Agrawal2013,ic-Korda2013,j-Russo2014,j-Russo2016}.
+
+Bayes-UCB and TS can be viewed as different approaches to a Bayesian formulation of the MAB problem.
+Namely, the agent views the unknown parameter of the reward function $\theta_t$ as a random variable, 
+and as data from bandit interactions with the environment are collected,
+a Bayesian policy updates its parameter posterior.
+Because a bandit agent must take into account the uncertainty on the unknown parameters,
+prior knowledge on the reward model and its parameters can be incorporated into Bayesian policies,
+capturing the full state of knowledge via the parameter posterior
+\begin{equation}
+p(\theta_t|\HH_{1:t}) \propto p_{a_t}(y_t|x_t,\theta_t)p(\theta_t| \HH_{1:t-1}) \; ,
+\label{eq:mab_param_posterior}
+\end{equation}
+where $p_{a_t}(y_t | x_t, \theta_t)$ is the likelihood of the observed reward $y_t$ after playing arm $a_t$ at time $t$.
+Computation of this posterior is critical for Bayesian MAB algorithms.
+
+In Thompson sampling,
+one uses $p(\theta_t|\HH_{1:t})$ to compute the probability of an arm being optimal,
+\ie $\pi(A|x_{t+1},\HH_{1:t}) = \Prob{A=a_{t+1}^*|x_{t+1}, \theta_t, \HH_{1:t}}$,
+where the uncertainty over the parameters must be accounted for~\citep{j-Russo2018}.
+
+Namely,
+one marginalizes the posterior parameter uncertainty after observing  history $\HH_{1:t}$ up to time instant $t$, \ie
+\begin{equation}
+\begin{split}
+\pi(A|x_{t+1},\HH_{1:t})&=\Prob{A=a_{t+1}^*|x_{t+1},\HH_{1:t}} \\
+&= \int \Prob{A=a_{t+1}^*|x_{t+1},\theta_t,\HH_{1:t}} p(\theta_t|\HH_{1:t}) \dd{\theta} \\
+&=\int \myind{A=\argmax_{a^\prime \in \A} \mu_{t+1,a^\prime}(x_{t+1},\theta_t)} p(\theta_t|\HH_{1:t}) \dd{\theta_t} \; .
+\end{split}
+\label{eq:theta_unknown_pr_arm_optimal}
+\end{equation}
+
+In Bayes-UCB,
+$p(\theta_t|\HH_{1:t})$ is critical to determine the distribution of the expected rewards, \ie
+\begin{equation}
+p(\mu_{t+1,a}(x_{t+1})) = \int p(\mu_{t+1,a}|x_{t+1},\theta_{t}) p(\theta_t|\HH_{1:t}) \dd{\theta_t} \;,
+\label{eq:density_expected_rewards}
+\end{equation}
+which is required for computation of the expected reward quantile $q_{t+1,a}(\alpha_{t})$, formally defined as
+\begin{equation}
+\Prob{\mu_{t+1,a}(x_{t+1})>q_{t+1,a}(\alpha_{t})}=\alpha_{t} \;,
+\label{eq:quantile_expected_rewards}
+\end{equation}
+where the quantile value $\alpha_t$ may depend on time, as proposed by~\citet{ip-Kaufmann2012}.
+
+Analytical expressions for the parameter posterior of interest $p(\theta_t|\HH_{1:t})$ are available only for few reward functions (\eg Bernoulli and linear contextual Gaussian models),
+but not for many other useful cases, such as logistic or categorical rewards.
+In addition,
+computation of Equations~\eqref{eq:theta_unknown_pr_arm_optimal} and \eqref{eq:quantile_expected_rewards} can be challenging for many distributions outside the exponential family~\citep{ic-Korda2013}.
+These issues become even more imperative
+when dealing with dynamic parameters, \ie in environments that evolve over time,
+and with nonlinear reward distributions.
+
+\subsubsection{Beyond linear MABs.}
+\label{sssec:mab_algos_complex}
+To extend MAB algorithms to more realistic scenarios,
+many have considered flexible reward functions and Bayesian inference.
+For example,
+the use of Laplace approximations~\citep{ic-Chapelle2011} 
+or Polya-Gamma augmentations~\citep{ic-Dumitrascu2018}
+for Thompson sampling.
+These techniques however, are targeted to binary rewards only, modeled via the logistic function.
+
+To accommodate complex, continuous reward functions, 
+the combination of Bayesian neural networks with approximate inference has also been investigated.
+Variational methods, stochastic mini-batches, and Monte Carlo techniques have been studied for uncertainty estimation of reward posteriors of these models~\citep{ip-Blundell2015, ic-Kingma2015, ic-Osband2016, ip-Li2016}.
+
+\citet{ip-Riquelme2018} benchmarked some of these techniques, and reported that neural networks with approximate inference, even if successful for supervised learning, under-perform in the MAB setting.
+In particular, \citet{ip-Riquelme2018} emphasize
+the need for adapting the slow convergence uncertainty estimates of neural net based methods
+for a successful identification of the exploration-exploitation tradeoff.
+
+In parallel,
+others have investigated how to extend Bayesian policies, such as Thompson sampling, 
+to complex online problems~\citep{ip-Gopalan2014}
+by leveraging ensemble methods~\citep{ip-Lu2017},
+generalized sampling techniques~\citep{j-Li2013},
+or via bootstrapped sampling ~\citep{j-Eckles2019,j-Osband2015}.
+Solutions that approximate
+the unknown bandit reward function with finite~\citep{ip-Urteaga2018}
+or countably infinite Gaussian mixture models~\citep{j-Urteaga2018a} have also been proposed.
+
+However, all these algorithms for MABs with complex rewards assume stationary distributions.
+
+\subsubsection{Non-stationary MABs.}
+\label{sssec:mab_algos_dynamic}
+The study of bandits in a changing world go back to the work by Whittle~\citep{j-Whittle1988},
+with subsequent theoretical efforts by many on characterizing restless, or non-stationary, bandits~\citep{j-Auer2002a, j-Bubeck2012}.
+The special case of piecewise-stationary, or abruptly changing environments, has attracted a lot of interest in general~\citep{ip-Yu2009,ip-Luo2018},
+and for UCB~\citep{ip-Garivier2011} and Thompson sampling~\citep{ip-Mellor2013} algorithms, in particular.
+Often, these impose a reward `variation' constraint on the evolution of the arms~\citep{j-Raj2017},
+or target specific reward functions, such as Bernoulli rewards in~\citep{ic-Besbes2014},
+where discounting parameters for the prior Beta distributions can be incorporated.
+
+More flexible restless bandit models,
+based on the Brownian motion or discrete random walks~\citep{ip-Slivkins2008},
+and simple Markov models~\citep{ip-Bogunovic2016} have been proposed,
+showcasing the trade-off between the time horizon and the rate at which the reward function varies.
+Besides, theoretical performance guarantees have been recently established for Thompson sampling in restless environments
+where the bandit is assumed to evolve via a binary state Markov chain,
+both in the episodic \citep{ip-Jung2019} and non-episodic~\citep{j-Jung2019} setting.
+
+Here, we overcome constraints on both the bandit's assumed reward function and its time-evolving model,
+by leveraging sequential Monte Carlo (SMC).
+The use of SMC in the context of bandit problems was previously considered for probit~\citep{j-Cherkassky2013} and softmax~\citep{Urteaga2018} reward models,
+and to update latent feature posteriors in a probabilistic matrix factorization model~\citep{ic-Kawale2015}.
+%
+\citet{ip-Gopalan2014} showed that utilizing SMC to compute posterior distributions that lack an explicit closed-form
+is a theoretically grounded approach for certain online learning problems,
+such as bandit subset arm selection or job scheduling tasks.
+
+These efforts provide evidence that SMC can be successfully combined with Thompson sampling,
+yet are different in scope from our work.
+The SMC-based MAB framework we present generalizes existing Bayesian MAB policies beyond their original setting.
+%
+Contrary to existing MAB solutions, the SMC-based bandit policies we propose
+($i$) are not restricted to specific reward functions,
+but accommodate nonlinear and non-Gaussian rewards,
+($ii$) address non-stationary bandit environments, and
+($iii$) are readily applicable to state-of-the-art Bayesian MAB algorithms
+---Thompson sampling and Bayes-UCB policies--- in a modular fashion.

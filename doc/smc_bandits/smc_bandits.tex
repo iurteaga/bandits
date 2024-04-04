@@ -1,0 +1,142 @@
+\documentclass{article}
+\usepackage[margin=1.5in]{geometry}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Preamble with packages
+\input{my_preamble}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Custom definitions and macros
+\input{my_definitions}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Bibliography
+\usepackage[square,colon]{natbib}
+
+\usepackage{authblk}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%      Document starts
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{Sequential Monte Carlo Bandits}
+
+\author[1, 2]{
+	I\~{n}igo Urteaga
+}
+\author[3]{
+	Chris H.~Wiggins
+}
+
+\affil[ ]{{\footnotesize 
+		\sf iurteaga@bcamath.org \qquad \qquad chris.wiggins@columbia.edu
+	}
+}
+
+\affil[ ]{{\footnotesize}}
+	
+\affil[1]{
+	{\small
+	BCAM - Basque Center for Applied Mathematics,
+	Bilbao,
+	Spain
+	}
+}
+\affil[2]{
+	{\small 
+	IKERBASQUE, Basque Foundation for Science,
+	Bilbao,
+	Spain
+	}
+}
+\affil[3]{
+	{\small
+	Department of Applied Physics and Applied Mathematics,
+	Columbia University,
+	New York City,
+	NY, USA
+	}
+}
+
+\maketitle
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{abstract}
+We extend Bayesian multi-armed bandit (MAB) algorithms
+beyond their original setting
+by making use of sequential Monte Carlo (SMC) methods.
+A MAB is a sequential decision making problem
+where the goal is to learn a policy that maximizes long term payoff,
+where only the reward of the executed action is observed.
+In the stochastic MAB, the reward for each action is generated from an unknown distribution, often assumed to be stationary.
+To decide which action to take next,
+a MAB agent must learn the characteristics of the unknown reward distribution, \eg compute its sufficient statistics.
+However, closed-form expressions for these statistics are analytically intractable except for simple, stationary cases.
+We here utilize SMC for estimation of the statistics Bayesian MAB agents compute,
+and devise flexible policies that can address a rich class of bandit problems:
+\ie MABs with nonlinear, stateless- and context-dependent reward distributions that evolve over time.
+We showcase how non-stationary bandits,
+where time dynamics are modeled via linear dynamical systems,
+can be successfully addressed by SMC-based Bayesian bandit agents.
+We empirically demonstrate good regret performance of the proposed SMC-based bandit policies in several MAB scenarios that have remained elusive,
+\ie in non-stationary bandits with nonlinear rewards.
+\end{abstract}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Introduction}
+\label{intro}
+\input{intro}
+
+\section{Background and preliminaries}
+\label{sec:background}
+\input{background}
+
+\section{SMC for multi-armed bandits}
+\label{sec:smc_mab}
+\input{smc_mab}
+
+\clearpage
+\section{Evaluation}
+\label{sec:evaluation}
+\input{evaluation}
+
+\section{Conclusion and discussion}
+\label{sec:conclusion}
+\input{conclusion_discussion}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Acknowledgments}
+We thank Luke Bornn for bringing~\citep{j-Cherkassky2013} to our attention,
+and the reviewers of previous versions of the work, for their valuable insights and suggestions.
+This research was supported in part by NSF grant SCH-1344668.
+I\~{n}igo Urteaga acknowledges
+this research is supported by ``la Caixa'' foundation fellowship LCF/BQ/PI22/11910028,
+and also by the Basque Government through the BERC 2022-2025 program
+and by the Ministry of Science and Innovation: BCAM Severo Ochoa accreditation
+CEX2021-001142-S / MICIN / AEI / 10.13039/501100011033.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Generate bibliography from the specified bibliography file
+%\bibliography{./literature}
+% Select a .bst file for the style
+\bibliographystyle{abbrvnat}
+% For submission, incorporate the .bbl content here
+\input{smc_bandits.bbl}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%                   APPENDIX
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\clearpage
+\appendix
+
+\section{SMC-based policies for stationary bandits}
+\label{asec:static_bandits}
+\input{./appendix/app_static_bandits}
+
+\clearpage
+\section{SMC-based policies in non-stationary bandits}
+\label{asec:dynamic_bandits}
+\input{./appendix/app_dynamic_bandits}
+
+\end{document}
+

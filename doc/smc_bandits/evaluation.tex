@@ -1,0 +1,51 @@
+% !TEX root = smc_bandits.tex
+We empirically evaluate the proposed SMC-based Bayesian MAB framework
+in non-stationary bandit scenarios
+%\footnote{
+%	Results in Appendix~\ref{assec:static_bandits_experiments_analytical}
+%	validate the performance of SMC-based policies in stationary bandits.
+%	We compare their performance to solutions based on analytically attainable posteriors
+%	with Bernoulli and contextual linear Gaussian reward functions~\citep{ip-Kaufmann2012,ip-Garivier2011a,ic-Korda2013,ip-Agrawal2013a},
+%	as well as for context-dependent binary rewards modeled with the logistic reward function~\cite{ic-Chapelle2011,j-Scott2015} ---Appendix~\ref{assec:static_bandits_experiments_logistic}.
+%	Results showcase satisfactory performance across a wide range of stationary bandit parameterizations and sizes,
+%	as SMC-based policies achieve the right exploration-exploitation tradeoff.
+%}
+with continuous, binary and discrete-categorical reward distributions.
+
+Results in Appendix~\ref{assec:static_bandits_experiments_analytical}
+validate the performance of SMC-based policies in stationary bandits.
+We compare their performance to solutions based on analytically attainable posteriors
+with Bernoulli and contextual linear Gaussian reward functions~\citep{ip-Kaufmann2012,ip-Garivier2011a,ic-Korda2013,ip-Agrawal2013a},
+as well as for context-dependent binary rewards modeled with the logistic reward function~\cite{ic-Chapelle2011,j-Scott2015} ---Appendix~\ref{assec:static_bandits_experiments_logistic}.
+Results showcase satisfactory performance across a wide range of stationary bandit parameterizations and sizes,
+as SMC-based policies achieve the right exploration-exploitation tradeoff.
+
+For results we present below, we simulate different parameterizations of dynamic linear models described in Section~\ref{ssec:linear_mixing_dynamics},
+and present results for a variety of MAB environments with reward functions detailed in Sections~\ref{ssec:dynamic_bandits_gaussian},~\ref{ssec:dynamic_bandits_logistic} and~\ref{ssec:dynamic_bandits_categorical}.
+Section~\ref{ssec:logged_data_bandits} illustrates
+the ability of SMC-based bandit policies
+to capture non-stationary trends in personalized news article recommendations.
+
+The main evaluation metric is the cumulative regret of the bandit agent, as defined in Equation~\eqref{eq:mab_cumulative_regret},
+with results averaged over 500 realizations.
+We present results for SMC-based policies with $M=2000$ samples,
+and provide an evaluation of the impact of $M$ in Appendix~\ref{asec:dynamic_bandits}.
+
+\subsection{Non-stationary, linear Gaussian rewards}
+\label{ssec:dynamic_bandits_gaussian}
+\input{dynamic_bandits_gaussian}
+
+\clearpage
+\subsection{Non-stationary, logistic rewards}
+\label{ssec:dynamic_bandits_logistic}
+\input{dynamic_bandits_logistic}
+
+\clearpage
+\subsection{Non-stationary, categorical rewards}
+\label{ssec:dynamic_bandits_categorical}
+\input{dynamic_bandits_categorical}
+
+%\clearpage
+\subsection{Bandits for personalized news article recommendation}
+\label{ssec:logged_data_bandits}
+\input{bandits_news_recommendation}

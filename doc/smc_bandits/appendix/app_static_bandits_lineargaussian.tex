@@ -1,0 +1,91 @@
+% !TEX root = smc_bandits.tex
+
+\subsubsection{Contextual Linear Gaussian bandits, A=2}
+\label{asssec:static_bandits_linearGaussian_2}
+
+We present below cumulative regret results for different parameterizations of 2-armed, contextual linear Gaussian bandits.
+
+% theta-0.1_-0.1_0.1_0.1_sigma0.5_0.5
+\begin{figure}[!h]
+	\centering
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/linear_gaussian/A2/theta-0.1_-0.1_0.1_0.1_sigma0.5_0.5_M1000_cumulative_regret_knownsigma}
+		\caption{Known $\sigma$: Analytical and SMC-based ($M=1000$) TS and Bayes-UCB.}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/linear_gaussian/A2/theta-0.1_-0.1_0.1_0.1_sigma0.5_0.5_M1000_cumulative_regret_unknownsigma}
+		\caption{Unknown $\sigma$: Analytical and SMC-based ($M=1000$) TS and Bayes-UCB.}
+	\end{subfigure}
+	
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/linear_gaussian/A2/theta-0.1_-0.1_0.1_0.1_sigma0.5_0.5_allM_cumulative_regret_ts_knownsigma}
+		\caption{Known $\sigma$: SMC-based TS, \\ impact of $M$.}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/linear_gaussian/A2/theta-0.1_-0.1_0.1_0.1_sigma0.5_0.5_allM_cumulative_regret_ts_unknownsigma}
+		\caption{Unknown $\sigma$: SMC-based TS, \\ impact of $M$.}
+	\end{subfigure}
+
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/linear_gaussian/A2/theta-0.1_-0.1_0.1_0.1_sigma0.5_0.5_allM_cumulative_regret_bucb_knownsigma}
+		\caption{Known $\sigma$: SMC-based Bayes-UCB, impact of $M$.}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/linear_gaussian/A2/theta-0.1_-0.1_0.1_0.1_sigma0.5_0.5_allM_cumulative_regret_bucb_unknownsigma}
+		\caption{Unknown $\sigma$: SMC-based Bayes-UCB, impact of $M$.}
+	\end{subfigure}
+	
+	\caption{Mean cumulative regret (standard deviation shown as the shaded region) of Bayesian policies in a stationary, two-armed contextual Gaussian bandit:
+		$\theta_0=(-0.1,-0.1), \ \theta_1=(0.1,0.1), \sigma^2=0.5$.}
+\end{figure}
+
+\clearpage
+\subsubsection{Contextual Linear Gaussian bandits, A=5}
+\label{asssec:static_bandits_linearGaussian_5}
+
+We present below cumulative regret results for different parameterizations of 5-armed, contextual linear Gaussian bandits.
+
+% theta-0.2_-0.2_-0.1_-0.1_0._0._0.1_0.1_0.2_0.2_sigma0.5_0.5_0.5_0.5_0.5
+\begin{figure}[!h]
+	\centering
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/linear_gaussian/A5/theta-0.2_-0.2_-0.1_-0.1_0._0._0.1_0.1_0.2_0.2_sigma0.5_0.5_0.5_0.5_0.5_M1000_cumulative_regret_knownsigma}
+		\caption{Known $\sigma$: Analytical and SMC-based ($M=1000$) TS and Bayes-UCB.}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/linear_gaussian/A5/theta-0.2_-0.2_-0.1_-0.1_0._0._0.1_0.1_0.2_0.2_sigma0.5_0.5_0.5_0.5_0.5_M1000_cumulative_regret_unknownsigma}
+		\caption{Unknown $\sigma$: Analytical and SMC-based ($M=1000$) TS and Bayes-UCB.}
+	\end{subfigure}
+	
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/linear_gaussian/A5/theta-0.2_-0.2_-0.1_-0.1_0._0._0.1_0.1_0.2_0.2_sigma0.5_0.5_0.5_0.5_0.5_allM_cumulative_regret_ts_knownsigma}
+		\caption{Known $\sigma$: SMC-based TS, \\ impact of $M$.}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/linear_gaussian/A5/theta-0.2_-0.2_-0.1_-0.1_0._0._0.1_0.1_0.2_0.2_sigma0.5_0.5_0.5_0.5_0.5_allM_cumulative_regret_ts_unknownsigma}
+		\caption{Unknown $\sigma$: SMC-based TS, \\ impact of $M$.}
+	\end{subfigure}
+	
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/linear_gaussian/A5/theta-0.2_-0.2_-0.1_-0.1_0._0._0.1_0.1_0.2_0.2_sigma0.5_0.5_0.5_0.5_0.5_allM_cumulative_regret_bucb_knownsigma}
+		\caption{Known $\sigma$: SMC-based Bayes-UCB, impact of $M$.}
+	\end{subfigure}
+	\begin{subfigure}[b]{0.46\textwidth}
+		\centering
+		\includegraphics[width=\textwidth]{./fods_figs/static/linear_gaussian/A5/theta-0.2_-0.2_-0.1_-0.1_0._0._0.1_0.1_0.2_0.2_sigma0.5_0.5_0.5_0.5_0.5_allM_cumulative_regret_bucb_unknownsigma}
+		\caption{Unknown $\sigma$: SMC-based Bayes-UCB, impact of $M$.}
+	\end{subfigure}
+	
+	\caption{Mean cumulative regret (standard deviation shown as the shaded region) of Bayesian policies in a stationary, five-armed contextual Gaussian bandit: $\theta_0=(-0.2,-0.2), \ \theta_1=(-0.1,-0.1), \ \theta_2=(0,0), \ \theta_3=(0.1,0.1), \ \theta_4=(0.2,0.2), \sigma^2=0.5$.}
+\end{figure}

@@ -1,0 +1,80 @@
+% !TEX root = smc_bandits.tex
+
+Monte Carlo (MC) methods are a family of numerical techniques based on repeated random sampling,
+which have been shown to be flexible enough for both numerical integration and drawing samples from complex probability distributions of interest~\citep{b-Liu2001}.
+
+With importance sampling (IS), one estimates properties of a distribution when obtaining samples from such distribution is difficult.
+The basic idea of IS is to draw, from an alternative distribution,
+samples that are subsequently weighted to guarantee estimation accuracy (and often reduced variance).
+These methods are used both to approximate posterior densities,
+and to compute expectations in probabilistic models, \ie
+\begin{equation}
+\bar{f}=\int f(\varphi) p(\varphi) \mathrm{d}\varphi \;,
+\end{equation}
+when these are too complex to treat analytically.
+IS relies on a proposal distribution $q(\cdot)$,
+from which one draws $M$ samples $\varphi^{(m)} \sim q(\varphi), \; m=1, \cdots , M$,
+weighted according to
+\begin{equation}
+\widetilde{w}^{(m)}=\frac{p(\varphi^{(m)})}{q(\varphi^{(m)})} \;, \quad \text{with} \quad w^{(m)}=\frac{\widetilde{w}^{(m)}}{\sum_{m=1}^M\widetilde{w}^{(m)}} \; .
+\end{equation}
+
+If the support of $q(\cdot)$ includes the support of the distribution of interest $p(\cdot)$, one computes the IS estimator of a test function based on the normalized weights $w^{(m)}$,
+\begin{equation}
+\bar{f}_M=\sum_{m=1}^M w^{(m)} f\left(\varphi^{(m)}\right) \; ,
+\end{equation}
+with convergence guarantees under weak assumptions~\citep{b-Liu2001}.
+%\begin{equation}
+%\bar{f}_M \mathop{\longrightarrow}_{M\rightarrow \infty}^{a.s} \bar{f} \; .
+%\label{eq:is_convergence}
+%\end{equation}
+
+IS can also be interpreted as a sampling method where the true posterior distribution is approximated by a random measure, \ie
+\begin{equation}
+p(\varphi) \approx p_M(\varphi) = \sum_{m=1}^M w^{(m)} \delta\left(\varphi^{(m)}-\varphi\right) \;,
+\end{equation}
+leading to estimates that integrate the test function with respect to such measure,
+\begin{equation}
+\bar{f}_M=\int f(\varphi) p_M(\varphi) \mathrm{d}\varphi =  \sum_{m=1}^M f\left(\varphi^{(m)}\right) w^{(m)} \; .
+\end{equation}
+
+The sequential counterpart of IS,
+also known as sequential Monte Carlo (SMC)~\citep{b-Doucet2001}
+or particle filtering (PF)~\citep{ib-Djuric2010},
+provides a convenient solution to computing approximations to posterior distributions
+with sequential or recursive formulations.
+%
+In SMC, one considers a proposal distribution that factorizes
+---often, but not necessarily--- over time, \ie
+\begin{equation}
+q(\varphi_{0:t})=q(\varphi_t|\varphi_{1:t-1}) q(\varphi_{1:t-1})=\prod_{\tau=1}^{t} q(\varphi_{\tau}|\varphi_{1:\tau-1}) q(\varphi_0) \; ,
+\end{equation}
+which helps in matching the sequential form of the probabilistic model of interest $p(\varphi_t|\varphi_{1:t-1})$,
+to enable a recursive evaluation of the importance sampling weights
+\begin{equation}
+w_t^{(m)} \propto \frac{p(\varphi_{t}|\varphi_{1:t-1})}{q(\varphi_{t}|\varphi_{1:t-1})} w_{t-1}^{(m)} \; .
+\end{equation}
+
+One problem with following the above weight update scheme is that,
+as time evolves, the distribution of the importance weights becomes more and more skewed,
+resulting in few (or just one) non-zero weights.
+
+To overcome this degeneracy, an additional selection step, known as resampling \citep{j-Li2015}, is added.
+In its most basic setting,
+one replaces the weighted empirical distribution with an equally weighted random measure at every time instant,
+where the number of offspring for each sample is proportional to its weight.
+This is known as Sequential Importance Resampling (SIR)~\citep{j-Gordon1993}.
+
+SIR and its many variants ~\citep{b-Doucet2001,j-Arulampalam2002}
+have been shown to be of great flexibility and value
+in many science and engineering problems~\citep{b-Ristic2004,j-Leeuwen2009,j-Ionides2006,j-Creal2012},
+where data are acquired sequentially in time.
+In these circumstances,
+one needs to infer all the unknown quantities in an online fashion,
+where often, the underlying parameters evolve over time.
+
+SMC provides a flexible and useful framework
+for these problems with probabilistic models and lax assumptions:
+\ie when nonlinear observation functions, non-Gaussian noise processes and uncertainty over model parameters must be accommodated.
+%
+Here, we leverage SMC for flexible approximations to posterior of interest in non-stationary and nonlinear MAB problems.
